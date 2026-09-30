@@ -1,0 +1,59 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: pnpm --filter @gratta/backend dev
+    init: true
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-3000}:3000"
+    environment:
+      PORT: "3000"
+      NODE_ENV: development
+      TSC_WATCHFILE: DynamicPriorityPolling
+      TSC_WATCHDIRECTORY: DynamicPriorityPolling
+    volumes:
+      - ./apps/backend/src:/workspace/apps/backend/src
+      - ./apps/backend/tests:/workspace/apps/backend/tests
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 30s
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: pnpm --filter @gratta/frontend dev
+    init: true
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-5173}:5173"
+    environment:
+      API_PROXY_TARGET: http://backend:3000
+      WATCH_POLLING: "${WATCH_POLLING:-true}"
+    volumes:
+      - ./apps/frontend/src:/workspace/apps/frontend/src
+      - ./apps/frontend/index.html:/workspace/apps/frontend/index.html
+      - ./apps/frontend/vite.config.ts:/workspace/apps/frontend/vite.config.ts
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:5173').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
