@@ -1,0 +1,25 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "tasks": {
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": [
+        "PORT",
+        "API_PROXY_TARGET",
+        "WATCH_POLLING",
+        "NODE_ENV",
+        "TSC_WATCHFILE",
+        "TSC_WATCHDIRECTORY"
+      ]
+    },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"],
+      "env": ["VITE_*"]
+    },
+    "typecheck": { "dependsOn": ["^typecheck"], "outputs": [] },
+    "lint": { "outputs": [] },
+    "test": { "dependsOn": ["build"], "outputs": [] }
+  }
+}
