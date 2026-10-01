@@ -45,3 +45,5 @@ React Context Provider 패턴으로 화면 간 예시 상태를 공유하고 함
 타입 검사·lint·Next.js 및 NestJS 빌드 통과. Compose config 통과. Chrome에서 로그인·목록·원문·통계·모순·관점·일정 이동, 근거 강조, 분석 실패→재시도→완료, 일정 후보 확인·저장 및 페이지 이동 후 유지 확인. 390px viewport에서 가로 넘침 없음 확인. 최종 폼 수정 후 타입·lint 통과. 일정 수정·예시 업로드·삭제 확인 dialog·페이지 이동 후 상태 유지 및 콘솔 오류 0 확인. Next.js /api/health 응답과 /api/docs HTTP 200, frozen-lockfile 오프라인 설치 통과. 최종 프로덕션 빌드 통과(Next.js App Router 7개 경로).
 
 Docker 엔진이 꺼져 있어 새 컨테이너 빌드·healthy 검증은 미실행이다. 프론트 자동 테스트 스위트는 없다. 다음 작업은 Supabase Auth·사용자 소유권·NestJS 업로드/파싱 계약 구현 및 연결이며 M2/M3 전체 완료로 간주하지 않는다.
+
+프로덕션 start는 scripts/start.mjs에서 standalone 자산을 복사하고 생성된 Node 서버를 실행한다. 일반 next start의 standalone 구성 경고를 피하며 5173 포트를 기본으로 사용한다.
