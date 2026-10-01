@@ -105,7 +105,7 @@ docker compose down
 
 ### 호스트 실행·검증
 
-Node.js 24.x와 pnpm 10.15.0을 사용합니다. 저장소 루트에서 실행합니다.
+Node.js 24.x와 pnpm 10.15.0, Turbo 2.9.14를 사용합니다. Windows 터미널 충돌을 피하도록 루트 실행 스크립트에서 로컬 바이너리 재탐색을 끕니다. 저장소 루트에서 실행합니다.
 
 ```sh
 pnpm install --frozen-lockfile

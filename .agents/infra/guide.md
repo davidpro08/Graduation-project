@@ -2,7 +2,7 @@
 
 ## 초기 구성과 상태
 
-로컬 Docker 개발 이미지·Compose를 구성했다. 운영 이미지·클라우드 리소스·CI/CD는 **미구현**이다. Docker·Docker Compose, GitHub Actions, ECR, EC2를 사용하도록 설계했으며 로컬은 Node 24·pnpm 10.15.0·Turborepo 2.11.5를 사용한다. AWS 리전·계정·인스턴스·도메인·리소스 이름은 미정이다.
+로컬 Docker 개발 이미지·Compose를 구성했다. 운영 이미지·클라우드 리소스·CI/CD는 **미구현**이다. Docker·Docker Compose, GitHub Actions, ECR, EC2를 사용하도록 설계했으며 로컬은 Node 24·pnpm 10.15.0·Turborepo 2.9.14를 사용한다. AWS 리전·계정·인스턴스·도메인·리소스 이름은 미정이다.
 
 | 구성 | 초기 계획 | 상태 |
 | --- | --- | --- |
@@ -19,7 +19,7 @@
 ## Docker·네트워크
 
 - 로컬은 `Dockerfile.dev`·`compose.yaml`로 Node 24 기반 Linux 개발 컨테이너 두 개를 실행한다. `docker compose up --build`, 종료는 `docker compose down`이다. 소스만 bind mount하여 호스트 node_modules가 Linux 의존성을 덮어쓰지 않게 한다.
-- 프론트 5173·백엔드 3000을 호스트 loopback에 공개한다. Compose의 Vite 프록시는 `http://backend:3000`, 호스트 실행은 `http://127.0.0.1:3000`을 사용한다. NestJS healthcheck 통과 후 Vite를 시작한다. Nest CLI watch는 `--no-shell`을 사용하고, 개발 이미지에 프로세스 탐색용 `procps`를 설치해 재시작 시 기존 서버가 남지 않게 한다.
+- 프론트 5173·백엔드 3000을 호스트 loopback에 공개한다. Compose의 Vite 프록시는 `http://backend:3000`, 호스트 실행은 `http://127.0.0.1:3000`을 사용한다. NestJS healthcheck 통과 후 Vite를 시작한다. Docker의 Nest CLI watch에만 `--no-shell`을 사용하고, 개발 이미지에 프로세스 탐색용 `procps`를 설치해 재시작 시 기존 서버가 남지 않게 한다.
 - Vite polling과 TypeScript watch polling을 사용한다. 의존성·Dockerfile·백엔드 설정 변경은 이미지를 다시 빌드한다. `.env.example`의 포트·polling 설정은 복사 없이 기본값으로도 실행된다.
 - 호스트는 `pnpm install --frozen-lockfile` 후 `pnpm dev`로 두 앱을 Turborepo에서 실행한다. Docker와 호스트를 같은 포트로 동시에 실행하지 않는다. 로컬은 HTTP이고 Nginx·HTTPS는 운영 구성에 해당한다.
 - 운영은 두 컨테이너를 사용한다. 프론트 컨테이너가 Nginx와 React 빌드 결과를 제공하고 백엔드는 내부 Docker 네트워크로 연결한다.
@@ -63,3 +63,9 @@
 | 2026-09-30 | pnpm workspace·Turborepo·Docker 로컬 개발 구성 | Compose 설정·두 이미지 빌드·컨테이너 healthy 확인 | M4 운영 이미지·클라우드 배포 구성 |
 
 리전·인스턴스 유형·리소스 식별자·연결 방식·이미지 SHA·변경 이유를 실제 설정 후 추가한다. 비밀 값은 제외한다. 인스턴스 변경·시스템 추가 시 상태 확인과 복구 절차도 갱신한다.
+
+## Windows 호스트 실행 주의
+
+Turbo 2.11.5에서 대화형 PowerShell 실행 시 종료 코드 3221226505를 재현하여 2.9.14로 고정했다. npm 설치 흔적의 바이너리가 재선택되는 것을 막기 위해 루트 실행 스크립트는 `--skip-infer`를 사용하고 dev는 stream 출력을 사용한다. 설치는 pnpm과 루트 잠금 파일을 기준으로 한다.
+
+공백이 있는 Windows 경로에서 Nest CLI의 `--no-shell`이 실행 파일 경로를 잘못 인용하므로 호스트 dev는 기본 셸 실행을 사용한다. Docker에서는 Compose가 `nest start --watch --no-shell`을 직접 지정해 Linux 재시작 동작을 유지한다.

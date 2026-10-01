@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    command: pnpm --filter @gratta/backend dev
+    command: pnpm --filter @gratta/backend exec nest start --watch --no-shell
     init: true
     ports:
       - "127.0.0.1:${BACKEND_PORT:-3000}:3000"
