@@ -31,10 +31,10 @@
 
 ```mermaid
 flowchart LR
-    U[사용자 브라우저 / React] -->|로그인| AUTH[Supabase Auth]
-    U -->|HTTPS / 서비스 API| N[Nginx]
-    N -->|정적 파일| F[React 빌드 결과]
-    N -->|/api 프록시| B[NestJS]
+    U[사용자 브라우저 / Next.js] -->|로그인| AUTH[Supabase Auth]
+    U -->|HTTPS / 화면·서비스 API| N[HTTPS 진입점]
+    N -->|화면·자산| F[Next.js Node 서버]
+    F -->|/api 프록시| B[NestJS]
     B -->|사용자별 데이터| DB[Supabase PostgreSQL]
     B -->|비공개 원본 파일| S[Supabase Storage]
     B -->|HTTP 분석 요청| AI[별도 AI 서버]
@@ -43,7 +43,7 @@ flowchart LR
 
 | 구성 | 기술과 책임 |
 | --- | --- |
-| 프론트엔드 | React, TypeScript, Vite, Tailwind CSS, shadcn/ui; 화면·입력·상태 표시 |
+| 프론트엔드 | Next.js App Router, React, TypeScript, Tailwind CSS, shadcn/ui; 화면·입력·상태 표시 |
 | 백엔드 | NestJS, TypeScript, Swagger; 인증 검증·파싱·통계·AI 작업 관리·결과 저장 |
 | 데이터베이스 | Supabase Auth, PostgreSQL, 비공개 Storage; 사용자와 데이터 보관 |
 | AI 서버 | 로컬 모델 실행 서버 또는 GPU 대여 서버; 모델·제공자 미선정 |
@@ -61,7 +61,7 @@ flowchart LR
     A -->|배포 명령| EC[EC2 한 대]
     E -->|인증 후 이미지 다운로드| EC
     subgraph EC[EC2 한 대]
-        FC[프론트 컨테이너 / Nginx + React]
+        FC[프론트 컨테이너 / Next.js Node 서버]
         BC[백엔드 컨테이너 / NestJS]
         FC --> BC
     end
@@ -73,7 +73,7 @@ EC2에서 Docker Compose로 두 컨테이너를 실행합니다. 커밋 SHA 태�
 
 ## 현재 상태와 개발 문서
 
-현재는 **M1 개발 기반 구성 완료 단계**입니다. React·NestJS 앱을 pnpm workspace와 Turborepo로 구성했으며 상태 확인 API·Swagger·Docker 개발 환경이 있습니다. 로그인·DB·AI·실제 배포는 아직 구현하지 않았습니다.
+현재는 **M1 개발 기반 구성 완료 단계**입니다. Next.js·NestJS 앱을 pnpm workspace와 Turborepo로 구성했으며 상태 확인 API·Swagger·Docker 개발 환경이 있습니다. Figma 토큰 기반 8개 화면과 합성 데이터 체험을 구현했습니다. 인증·개인 저장·서버 파싱·AI·실제 배포는 미연결입니다.
 
 ## 로컬 개발
 
@@ -89,19 +89,19 @@ docker compose up --build
 
 | 접근 주소 | 용도 |
 | --- | --- |
-| http://localhost:5173 | React 개발 화면·백엔드 연결 확인 |
+| http://localhost:5173 | Next.js 화면 체험·백엔드 연결 확인 |
 | http://localhost:3000/api/health | 백엔드 상태; `{"status":"ok","service":"backend"}` |
 | http://localhost:5173/api/docs | 프론트 프록시를 통한 Swagger |
 | http://localhost:3000/api/docs | 백엔드 Swagger 직접 접근 |
 | http://localhost:3000/api/docs-json | OpenAPI JSON |
 
-소스 변경은 Vite HMR·NestJS watch로 반영합니다. Windows 파일 변경 감지를 위해 polling을 사용합니다. 의존성·Dockerfile·백엔드 설정 변경 후에는 `docker compose up --build`로 재빌드합니다. 실행을 종료하려면 다음 명령을 사용합니다.
+소스 변경은 Next.js Fast Refresh·NestJS watch로 반영합니다. Windows 파일 변경 감지를 위해 polling을 사용합니다. 의존성·Dockerfile·백엔드 설정 변경 후에는 `docker compose up --build`로 재빌드합니다. 실행을 종료하려면 다음 명령을 사용합니다.
 
 ```sh
 docker compose down
 ```
 
-`.env.example`을 `.env`로 복사하면 호스트 포트를 변경할 수 있습니다. 기본값 사용 시 복사하지 않아도 됩니다. Compose는 개발 전용이며 Nginx·HTTPS 운영 이미지는 M4에서 구성합니다. DB·AI 서버를 로컬 컨테이너로 실행하지 않습니다.
+`.env.example`을 `.env`로 복사하면 호스트 포트를 변경할 수 있습니다. 기본값 사용 시 복사하지 않아도 됩니다. Compose는 개발 전용이며 Next.js Node 운영 이미지와 HTTPS 진입점은 M4에서 구성합니다. DB·AI 서버를 로컬 컨테이너로 실행하지 않습니다.
 
 ### 호스트 실행·검증
 
@@ -112,7 +112,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Docker와 호스트 개발 서버는 동일 포트를 사용하므로 한 방식씩 실행합니다. 호스트 Vite도 `/api`를 백엔드 3000번 포트로 프록시합니다.
+Docker와 호스트 개발 서버는 동일 포트를 사용하므로 한 방식씩 실행합니다. 호스트 Next.js도 `/api`를 백엔드 3000번 포트로 프록시합니다.
 
 ```sh
 pnpm typecheck
@@ -121,7 +121,7 @@ pnpm build
 pnpm test
 ```
 
-`pnpm test`는 Turborepo가 백엔드를 빌드한 후 상태 API·Swagger 통합 테스트를 실행합니다. 현재 프론트 테스트 스위트는 없으며 타입 검사·정적 검사·빌드와 개발 서버 연결로 검증합니다.
+`pnpm test`는 Turborepo가 백엔드를 빌드한 후 상태 API·Swagger 통합 테스트를 실행합니다. 현재 프론트 자동 테스트 스위트는 없으며 타입 검사·정적 검사·빌드와 개발 서버 연결로 검증합니다.
 
 브랜치는 `codex/m<번호>/<기능>`, 커밋은 한 작업 단위의 `<type>(<scope>): <한국어 요약>`으로 나눕니다. 상세 규칙은 [하네스](.agents/agents.md#브랜치와-커밋-규칙)를 따릅니다. `.agents`와 잠금 파일은 추적하며 의존성·임시 파일·빌드 결과·비밀 설정은 제외합니다.
 
@@ -139,3 +139,9 @@ pnpm test
 ## 라이선스
 
 [LICENSE](LICENSE)를 참고합니다.
+
+### 화면 체험
+
+/login에서 화면 체험하기를 선택합니다. /conversations, /upload, /conversation/team/messages·statistics·contradiction·opinions·schedules를 제공합니다. 변경은 현재 탭 메모리에만 유지됩니다. 실제 파일은 로컬 미리보기만 지원하고 서버에 전송하지 않습니다. 상세는 [.agents/frontend/screens.md](.agents/frontend/screens.md)를 참조합니다.
+
+프로덕션 로컬 실행은 빌드 후 pnpm --filter @gratta/frontend start이며 포트는 5173입니다. API 프록시 기본 대상은 http://127.0.0.1:3000입니다.

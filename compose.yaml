@@ -40,8 +40,9 @@ services:
       WATCH_POLLING: "${WATCH_POLLING:-true}"
     volumes:
       - ./apps/frontend/src:/workspace/apps/frontend/src
-      - ./apps/frontend/index.html:/workspace/apps/frontend/index.html
-      - ./apps/frontend/vite.config.ts:/workspace/apps/frontend/vite.config.ts
+      - ./design:/workspace/design
+      - ./apps/frontend/next.config.ts:/workspace/apps/frontend/next.config.ts
+      - ./apps/frontend/postcss.config.mjs:/workspace/apps/frontend/postcss.config.mjs
     depends_on:
       backend:
         condition: service_healthy
@@ -56,4 +57,4 @@ services:
       interval: 5s
       timeout: 3s
       retries: 12
-      start_period: 10s
+      start_period: 60s

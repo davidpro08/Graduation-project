@@ -32,3 +32,6 @@ Thumbs.db
 Desktop.ini
 
 # .agents/와 pnpm-lock.yaml은 의도적으로 추적한다.
+
+# Next.js 출력
+.next/

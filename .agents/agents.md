@@ -42,12 +42,12 @@
 
 | 항목 | 상태 |
 | --- | --- |
-| 기준일 | 2026-09-30 |
-| 현재 단계 | M1 개발 기반 구성 완료; 로그인·DB·AI·클라우드 배포 미구현 |
-| 현재 작업 | React·NestJS Turborepo와 Docker 로컬 환경 구성 완료 |
+| 기준일 | 2026-10-01 |
+| 현재 단계 | M1 완료; M2/M3 프론트 화면 체험 구현, 실제 로그인·DB·AI·클라우드 배포 미연결 |
+| 현재 작업 | codex/m2/frontend-screens: Next.js 전환·디자인 토큰 연결·8개 화면 구현; 상세 frontend/screens.md |
 | 다음 작업 | M2: Supabase 사용자·소유권·대화 업로드·파싱·통계 구성 |
 | 차단 사항 | M2 시작 전 Supabase 개발 프로젝트 설정 필요. 실제 AI 연결은 모델·서버 선정 전 보류 |
-| 최근 검증 | 타입 검사·정적 검사·두 앱 빌드, API·Swagger 통합 테스트 2개, Compose 설정·이미지 빌드·두 컨테이너 healthy, API 프록시·소스 변경 반영·복원 확인 통과. 실제 클라우드 배포는 미실행 |
+| 최근 검증 | 최종 타입·lint·Next.js/NestJS 빌드, frozen-lockfile 오프라인 설치, Next.js API·Swagger 프록시, 화면 이동·근거 강조·분석 실패/재시도·일정 저장/수정·예시 추가/삭제·390px 넘침 검사 통과. Compose config 통과; Docker 엔진 미실행으로 컨테이너 재빌드는 미검증 |
 
 ## 마일스톤
 
@@ -55,8 +55,8 @@
 | --- | --- | --- |
 | M0 문서·하네스 | README·선택적 지침 작성, 링크·내용·읽기 규칙 검증 | 완료 |
 | M1 개발 기반 | 프론트·백엔드 초기화, 로컬 실행, Swagger 확인 | 완료 |
-| M2 사용자·대화 | 로그인, 개인 보관, 업로드·파싱·통계 검증 | 미착수 |
-| M3 분석 흐름 | 모의 AI, 작업 상태, 결과·일정 확인 검증 | 미착수 |
+| M2 사용자·대화 | 로그인, 개인 보관, 업로드·파싱·통계 검증 | 화면 체험 구현; 서비스 미연결 |
+| M3 분석 흐름 | 모의 AI, 작업 상태, 결과·일정 확인 검증 | 화면 체험 구현; 서버 작업·AI 미연결 |
 | M4 초기 배포 | Actions·ECR·EC2 배포, 상태 확인·복구 검증 | 미착수 |
 | M5 실제 AI 연결 | 모델 선정, 서버 연결·실패 처리 검증 | 보류 |
 
@@ -64,7 +64,7 @@
 
 | 항목 | 결정 |
 | --- | --- |
-| 웹 | React·TypeScript·Vite·Tailwind CSS·shadcn/ui, NestJS·Swagger |
+| 웹 | Next.js App Router·React·TypeScript·Tailwind CSS·shadcn/ui, NestJS·Swagger |
 | 사용자·DB | Supabase Auth·PostgreSQL·비공개 Storage, 개인별 보관 |
 | AI | HTTP, 모의 AI 우선, NestJS가 결과 검증·저장 |
 | 배포 | EC2 한 대·두 컨테이너, ECR, GitHub Actions, Compose 단순 교체 |
@@ -94,3 +94,17 @@
 - 커밋 전 `git status --short`와 스테이징 diff를 확인하고 의도한 파일만 경로를 지정해 스테이징한다. unrelated 변경을 포함하는 `git add .`를 기본으로 사용하지 않는다. 해당 작업에 필요한 검증 결과를 확인한다.
 - `.agents/`, README, 설정 예제, `pnpm-lock.yaml`은 추적한다. `.tmp/`, node_modules, 빌드·캐시·로그·실제 환경 설정·비밀 키는 `.gitignore`로 제외한다. 로컬 Docker와 호스트 모두에 이 규칙을 적용한다.
 - 실제 브랜치·커밋 작업 시 현재 브랜치와 사용자 변경을 먼저 확인한다. 사용자가 지정한 브랜치명은 우선한다. 브랜치 삭제·강제 푸시·기존 커밋 재작성은 별도 지시 없이 수행하지 않는다.
+
+## 와이어프레임 작업 기록
+
+| 날짜 | 작업 | 검증·남은 내용 |
+| --- | --- | --- |
+| 2026-10-01 | 기존 Figma 파일에 데스크톱 8개·모바일 2개·상태 보드와 공통 컴포넌트 구성 | 편집 구조, Noto Sans KR, 주요 화면 이동 76개, 버튼 문구 영역 초과 없음 및 시각 검증. 상세는 frontend/guide.md 참조. 구현 단계는 M1 완료 유지; 서비스 코드는 변경하지 않음 |
+
+| 2026-10-01 | Realtime Colors 팔레트와 Figma Color·Typography·Spacing·Radius·Shadow 토큰 v1, design/의 JSON·CSS·가이드 구성 | 변수 106개, 텍스트 스타일 8개, 효과 스타일 4개, 시각 검증 및 JSON/CSS 참조·중복 검사 통과. 기존 와이어프레임·앱 스타일 유지; M1 구현 상태 유지 |
+
+| 2026-10-01 | Figma 데스크톱 8개·모바일 2개·상태 화면·공통 컴포넌트에 브랜드 팔레트와 디자인 토큰 적용 | 기존 회색 토큰·렌더 색상 불일치·버튼 문구 잘림 없음, Noto Sans KR·프로토타입 연결 76개 유지 및 렌더 검증. 실제 앱 테마 연결은 미실행; M1 구현 상태 유지 |
+
+## 최신 프론트 인계 · 2026-10-01
+
+Figma·Realtime Colors·디자인 토큰 작업을 frontend/design.md에 통합하고 codex/m2/frontend-screens를 생성했다. 사용자 요청으로 Next.js 16.3.8로 전환하고 브랜드 토큰 기반 8개 화면·합성 데이터 체험을 구현했다. 상세 변경·경계·검증은 frontend/screens.md, 실행 변경은 infra/guide.md를 참조한다. 기존 M0 브랜치에 기반하며 원격 푸시는 미실행이다. 별도 사용자 작업인 scripts/는 이번 변경에 포함하지 않는다.
