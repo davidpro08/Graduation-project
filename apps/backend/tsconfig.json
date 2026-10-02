@@ -10,7 +10,7 @@
     "strict": true,
     "skipLibCheck": true,
     "sourceMap": true,
-    "types": ["node"]
+    "types": ["node", "multer"]
   },
   "include": ["src/**/*.ts"],
   "watchOptions": { "watchFile": "dynamicPriorityPolling", "watchDirectory": "dynamicPriorityPolling" }
