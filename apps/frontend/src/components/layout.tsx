@@ -3,6 +3,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { conversationHref, conversationTabs, type Route } from '@/lib/navigation';
 import type { Conversation } from '@/features/conversations/demo';
+import { AccountMenu } from '@/features/auth/account-menu';
 
 export function Card({ title, children, className = '', action }: { title?: string; children: ReactNode; className?: string; action?: ReactNode }) {
   return <section className={`card ${className}`}>
@@ -23,7 +24,7 @@ export function Shell({ route, conversation, children }: { route: Route; convers
   const titles = { login: '로그인', conversations: '내 대화', upload: '대화 업로드', health: '개발 환경', conversation: conversation?.title ?? '대화를 찾을 수 없습니다' };
   return <>
     <Link className="skip-link" href="#main-content" onClick={event => { event.preventDefault(); document.getElementById('main-content')?.focus(); }}>본문으로 이동</Link>
-    <header className="topbar"><Link href="/conversations" className="brand">그랬잖아</Link><span className="topbar-note">대화에서 찾는 근거, 함께 이해하는 관점</span><Link href="/login">로그인</Link></header>
+    <header className="topbar"><Link href="/conversations" className="brand">그랬잖아</Link><span className="topbar-note">대화에서 찾는 근거, 함께 이해하는 관점</span><AccountMenu /></header>
     <div className="workspace">
       <aside className="sidebar"><p className="nav-heading">내 공간</p><nav aria-label="주요 메뉴">
         <Link href="/conversations" aria-current={route.page === 'conversations' || route.page === 'conversation' ? 'page' : undefined}>내 대화</Link>

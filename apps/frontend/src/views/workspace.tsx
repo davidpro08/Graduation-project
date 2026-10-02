@@ -7,26 +7,7 @@ import { getHealth } from '@/lib/api';
 import { conversationHref } from '@/lib/navigation';
 import { formatDate, type Conversation } from '@/features/conversations/demo';
 
-export function LoginPage() {
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
-  const [notice, setNotice] = useState('');
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    event.currentTarget.reset();
-    setNotice('인증 서비스 연결 전입니다. 입력한 정보는 전송·저장하지 않습니다. 화면 체험을 이용해 주세요.');
-  }
-  return <main className="login-page" id="main-content">
-    <Link className="brand" href="/login">그랬잖아</Link>
-    <div className="login-grid"><div className="login-intro"><p className="eyebrow">채팅 기록 기반 대화 도우미</p><h1>기억이 다를 때,<br />대화에서 확인하세요.</h1><p>채팅 기록으로 발언의 근거를 살펴보고<br />다양한 관점에서 대화를 이해하세요.</p><div className="intro-note"><strong>대화의 근거부터, 함께.</strong><p>원문 확인 · 모순 후보 · 관점별 의견 · 일정 정리</p></div></div>
-    <Card title={mode === 'login' ? '로그인' : '회원가입'}><p className="muted">내 대화를 보관하고 분석 결과를 확인하세요.</p><form onSubmit={submit} className="stack">
-      <label>이메일<input name="email" type="email" autoComplete="email" placeholder="이메일을 입력하세요" required /></label>
-      <label>비밀번호<input name="password" type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} placeholder="비밀번호를 입력하세요" required minLength={8} /></label>
-      <Button type="submit">{mode === 'login' ? '로그인' : '회원가입'} · 연결 준비 중</Button>
-      <Button type="button" variant="outline" onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setNotice(''); }}>{mode === 'login' ? '회원가입' : '로그인으로 돌아가기'}</Button>
-    </form>{notice && <Notice tone="warning">{notice}</Notice>}<div className="divider" /><p className="small muted">인증 연결 전에도 합성 데이터로 화면을 확인할 수 있습니다.</p><Button asChild variant="secondary"><Link href="/conversations">화면 체험하기</Link></Button></Card></div>
-    <p className="small muted">현재는 화면 구현 단계입니다. 실제 대화 업로드·개인 저장·AI 분석은 서비스 연결 후 제공됩니다.</p>
-  </main>;
-}
+export { LoginPage } from '@/features/auth/login-page';
 
 export function ConversationList({ conversations, onDelete }: { conversations: Conversation[]; onDelete: (id: string) => void }) {
   const [query, setQuery] = useState('');

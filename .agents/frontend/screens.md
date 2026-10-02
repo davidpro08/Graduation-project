@@ -6,7 +6,8 @@
 
 | 경로 | 구현 내용 |
 | --- | --- |
-| /login | 로그인·회원가입 폼, 입력 검증, 서비스 미연결 안내, 화면 체험 진입 |
+| /login | Google·GitHub·Kakao OAuth 진입점, 로그인 후 내 정보·닉네임 수정·로그아웃, 화면 체험 진입 |
+| /auth/callback | PKCE 코드 교환·내 정보 API 확인, 성공 시 /conversations 이동, 오류·재확인 |
 | /conversations | 제목 검색, 예시 대화 열기, 삭제 확인 dialog |
 | /upload | .txt 로컬 미리보기, 오류 안내, 합성 예시 추가 |
 | /conversation/:id/messages | 원문 검색·참여자·기간 필터, 근거 메시지 강조·포커스 |
@@ -32,7 +33,7 @@ React Context Provider 패턴으로 화면 간 예시 상태를 공유하고 함
 
 ## 범위와 제한
 
-- 인증·개인 저장·서버 파싱·AI 호출·외부 캘린더는 미연결이다. 비밀번호는 전송·저장하지 않는다.
+- OAuth 로그인·사용자 프로필 API 연결 코드는 구현했으며 실로그인 검증은 사용자 수행 예정이다. 대화 개인 저장·서버 파싱·AI 호출·외부 캘린더는 미연결이다. 앱 자체 비밀번호 폼은 제공하지 않는다.
 - 예시 변경은 탭 메모리에만 남으며 새로고침 시 초기화한다. 삭제는 서버 데이터를 변경하지 않는다.
 - 실제 파일은 브라우저에서만 읽고 앞 4,000자를 표시한다. 로컬 미리보기 보호 한도 2MB는 서버 업로드 정책이 아니다. 선택한 실제 파일을 합성 결과로 파싱한 것처럼 보여주지 않는다.
 - 평균 응답 시간은 집계 계약 미확정이므로 계산값을 꾸며내지 않고 준비 중으로 표시한다. Figma의 큰 통계 예시 숫자를 대신해 표시한 5개·2개 메시지를 실제 집계한다.
@@ -47,3 +48,26 @@ React Context Provider 패턴으로 화면 간 예시 상태를 공유하고 함
 Docker 엔진이 꺼져 있어 새 컨테이너 빌드·healthy 검증은 미실행이다. 프론트 자동 테스트 스위트는 없다. 다음 작업은 Supabase Auth·사용자 소유권·NestJS 업로드/파싱 계약 구현 및 연결이며 M2/M3 전체 완료로 간주하지 않는다.
 
 프로덕션 start는 scripts/start.mjs에서 standalone 자산을 복사하고 생성된 Node 서버를 실행한다. 일반 next start의 standalone 구성 경고를 피하며 5173 포트를 기본으로 사용한다.
+
+## OAuth 로그인 연결 · 2026-10-03
+
+브랜치 `codex/m2/oauth-login`. 기존 화면 체험용 이메일·비밀번호 폼을 공식 리소스를 사용하는 세 제공자 버튼으로 교체했다. 로그인 시작은 Supabase OAuth, 콜백은 PKCE 세션 교환 후 GET /api/users/me 확인, 성공하면 대화 화면으로 이동한다. 상단 계정 링크에서 /login의 내 계정 화면을 열어 닉네임 수정과 현재 세션 로그아웃을 수행한다.
+
+| 흐름 | 처리 |
+| --- | --- |
+| 로그인 시작 | provider=google/github/kakao, 현재 브라우저 origin + /auth/callback으로 redirectTo 지정 |
+| 콜백 | 인가 코드 한 번 교환·브라우저 세션 저장·내 정보 조회 후 /conversations 이동 |
+| 서버 장애 | 콜백 오류 안내·다시 확인 버튼; 이미 성공한 코드 교환은 반복하지 않음 |
+| 닉네임 | 앞뒤 공백 제거, Unicode 1~30자 입력, PATCH /api/users/me 후 갱신 |
+| 세션 | SDK 복원·자동 갱신, API 401 시 현재 세션 정리·재로그인 안내 |
+| 화면 체험 | 로그인 없이 접근 유지, 대화 화면은 합성 데이터라고 계속 표시 |
+
+### 사용자 확인 절차
+
+1. 루트 .env의 Supabase URL·publishable 키, Dashboard의 Google·GitHub·Kakao 활성화를 확인한다.
+2. Supabase Site URL은 http://localhost:5173, Redirect URLs는 http://localhost:5173/auth/callback으로 설정한다. 제공자 앱 콜백은 프로젝트의 https://fthzjaeucyiudbjxmlgu.supabase.co/auth/v1/callback이다.
+3. dev 서버를 재시작하고 `pnpm dev`로 프론트·백엔드를 함께 실행한 뒤 http://localhost:5173/login을 연다. localhost와 127.0.0.1을 혼용하지 않는다.
+4. 제공자 버튼 → 제공자 로그인/동의 → 콜백 → 대화 화면 이동과 상단 내 계정 표시를 확인한다. Supabase profiles에 본인 행이 생성됐는지도 확인한다.
+5. 상단 내 계정에서 닉네임 저장·새로고침 후 유지·로그아웃·다시 로그인 흐름을 확인한다.
+
+요청에 따라 에이전트는 타입 검사·lint·빌드·브라우저·로그인·API·컨테이너 테스트를 실행하지 않았다. 실제 로그인 완료를 검증한 상태가 아니며 사용자가 실행 후 오류를 알려줄 예정이다. 최초 제공자 로그인 시 Auth 사용자와 profiles 행이 실제로 생성된다. 현재 로그인은 대화 저장·AI 연결 완료를 의미하지 않는다.

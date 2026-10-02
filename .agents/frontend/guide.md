@@ -1,5 +1,11 @@
 # 프론트엔드 지침
 
+## 공식 문서 우선 조회
+
+- [Next.js 공식 문서](https://nextjs.org/docs): App Router, Server/Client Components, 라우팅, 데이터 처리, 설정·배포를 확인한다.
+- 프론트 기술을 조사할 때 위 공식 문서에서 해당 주제와 설치된 Next.js 버전에 맞는 내용을 먼저 읽는다. 현재 프로젝트는 App Router를 사용하므로 Pages Router 예제를 그대로 적용하지 않는다.
+- 공식 문서가 부족하면 Context7로 해당 기술의 공식 문서 내용을 보완하고, 이후 공식 저장소의 이슈·릴리스를 확인한다. React·Tailwind CSS·shadcn/ui 자체 기능은 각 기술의 공식 문서를 확인한다.
+
 ## 범위와 기술
 
 Next.js App Router·React·TypeScript 프로젝트로 구성하고 Tailwind CSS와 shadcn/ui를 사용한다. 소스는 `apps/frontend`에 있으며 M1 개발 환경을 구성했다. 실제 package.json과 잠금 파일을 기준으로 기록한다.
@@ -11,6 +17,7 @@ Next.js App Router·React·TypeScript 프로젝트로 구성하고 Tailwind CSS�
 | `clsx` | 런타임 | 설치됨 | `^2.1.1` |
 | `lucide-react` | 런타임 | 설치됨 | `^1.49.0` |
 | `next` | 런타임 | 설치됨 | `16.3.8` |
+| `@supabase/supabase-js` | 런타임·OAuth PKCE·브라우저 세션 | 설치됨 | `2.117.2` |
 | `@fontsource/noto-sans-kr` | 런타임 | 설치됨 | `^5.3.0` |
 | `react` | 런타임 | 설치됨 | `^19.3.0` |
 | `react-dom` | 런타임 | 설치됨 | `^19.3.0` |
@@ -26,7 +33,7 @@ Next.js App Router·React·TypeScript 프로젝트로 구성하고 Tailwind CSS�
 | `typescript` | 개발·검증 | 설치됨 | `^5.9.3` |
 | `typescript-eslint` | 개발·검증 | 설치됨 | `^8.71.0` |
 
-실제 해석 버전은 루트 `pnpm-lock.yaml`을 기준으로 한다. Supabase 클라이언트는 M2에서 도입하며 아직 미설치다.
+실제 해석 버전은 루트 `pnpm-lock.yaml`을 기준으로 한다. Supabase SDK는 2.117.2로 고정 설치했다.
 
 shadcn/ui는 패키지 자체를 설치하는 방식 대신 `components.json`과 소스 소유 방식으로 도입했다. 공개 Button 구성을 프로젝트에 맞춰 수동 반영했다. 라우팅은 Next.js App Router·next/link를 사용한다. 서버 상태 라이브러리·프론트 자동 테스트 프레임워크는 미선정이다.
 
@@ -102,3 +109,19 @@ Figma 화면에는 브랜드 토큰 적용을 완료했다. 앱 연결은 fronte
 2026-10-01 사용자 요청으로 Vite 런타임과 전용 패키지를 Next.js 16.3.8 App Router·Tailwind PostCSS로 대체했다. 실제 경로, 공유 데모 Context Provider, 루트 layout·Suspense, /api rewrites, standalone 빌드, Next.js용 타입 생성·출력 캐시·Docker bind mount를 구성했다. Noto Sans KR 400·500·700은 패키지로 자체 제공한다. 기존 main.tsx·index.html·비활성 vite.config.ts는 이전 진입점 기록으로 남겼으며 Next.js가 사용하지 않는다.
 
 이번 작업에서 새로 추가한 src/pages 화면 초안은 Next.js Pages Router 예약 이름과 충돌하여 src/views로 정리했다. 기존 사용자 소스 이동은 없다. 디자인 인계는 [design.md](design.md), 화면·검증·미연결 범위는 [screens.md](screens.md)를 따른다. 앱 테마 연결 완료 상태가 최신 기준이다.
+
+## ESLint 기준 경로 수정 · 2026-10-03
+
+프론트·백엔드 ESLint 설정의 동시 로드 시 TSConfig 기준 경로 자동 추론 충돌을 막도록 각 앱 parserOptions.tsconfigRootDir에 import.meta.dirname을 명시했다. 두 앱 lint와 동일 프로세스 설정 로드·파싱 검증을 통과했다.
+
+## OAuth 로그인 연결 · 2026-10-03
+
+사용자 요청으로 프론트 하네스·공식 브랜드 가이드를 기준으로 Google·GitHub·Kakao 진입점을 구현했다. `src/features/auth`에 브라우저 PKCE 클라이언트·Auth Context·로그인/콜백·계정 표시를 분리하고 기존 LoginPage export 경로를 유지했다. 공통 API 경계에서 Bearer 전달·응답 검증·401 세션 정리·오류 안내를 담당한다. Context Provider 패턴으로 로그인 상태를 공유한다.
+
+SDK는 브라우저에서만 생성하며 flowType=pkce, persistSession·autoRefreshToken 활성화, detectSessionInUrl 비활성화다. 콜백은 명시적으로 code와 SDK의 sb_flow_id를 교환한다. Strict Mode 중복 교환을 막고 주소창에서 인가 코드·오류 값을 제거한다. SDK 세션은 브라우저 저장소에 유지하며 서버 쿠키·SSR 인증·대화 접근 제한은 추가하지 않았다. 서비스 권한은 NestJS·RLS가 검증한다.
+
+공식 자산은 `public/auth`에 원본 버튼·로고로 추가했다. [리소스 출처](../../apps/frontend/public/auth/README.md)를 참조한다. Google은 공식 PNG의 영문 문구를 그대로 사용하고 접근성 이름은 한국어다. Kakao는 공식 한국어 완성형 SVG, GitHub는 공식 흰색 Invertocat과 한국어 레이블이다.
+
+Next 설정은 루트 .env의 SUPABASE_URL·SUPABASE_PUBLISHABLE_KEY를 명시된 NEXT_PUBLIC_ 값으로 제공한다. 별도 NEXT_PUBLIC_ 환경변수가 있으면 우선하며 공개 publishable 키만 번들에 포함한다. `.env`·제공자 Secret·토큰을 저장소에 기록하지 않는다. 환경변수 변경은 dev 재시작 또는 재빌드가 필요하다.
+
+사용자가 직접 검증하기로 요청했으므로 이번 변경의 로그인·UI·API 테스트, 타입 검사·lint·빌드·컨테이너 실행은 모두 미실행이다. 이전 검증 기록을 이번 변경에 대한 통과로 해석하지 않는다. 상세 수동 확인 절차는 [screens.md](screens.md#oauth-로그인-연결--2026-10-03)를 따른다.
