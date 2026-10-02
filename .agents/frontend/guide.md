@@ -1,5 +1,29 @@
 # 프론트엔드 지침
 
+## 실제 대화·통계 연결 · 2026-10-03
+
+더미 대화·일정·고정 AI 결과를 제거하고 인증된 사용자 전용 실제 API Provider로 전환했다. 원본 TXT 업로드·원문 페이지 조회·서버 통계·삭제를 연결했다. 입력 상태와 서버 응답을 분리하고 이전 조회를 취소해 빠른 조건 변경에서 늦은 응답이 화면을 덮지 않게 했다. 로그인 표시에는 useSyncExternalStore의 서버 스냅샷을 사용하여 스트리밍 hydration 불일치를 수정했다.
+
+shadcn 공식 레지스트리 소스로 Calendar·Popover·Select·Input·Avatar·Badge·Chart·Skeleton·AlertDialog를 추가했다. 프로젝트 Button의 브랜드 변형은 유지하고 ghost/link/icon을 보완했다. Calendar는 한국어·월/연 선택·날짜 제한·조건 해제, Select는 참여자 타입어헤드·스크롤을 제공한다. Chart는 Recharts 3와 호환되는 new-york-v4 소스를 사용하며 cn 경로를 프로젝트에 맞췄다.
+
+| 패키지 | 설치·잠금 기준 버전 | 용도 |
+| --- | --- | --- |
+| @radix-ui/react-popover | 1.1.23 | 날짜 팝오버 |
+| @radix-ui/react-select | 2.3.7 | 참여자 선택 |
+| @radix-ui/react-avatar | 1.2.6 | 참여자 프로필 |
+| @radix-ui/react-alert-dialog | 1.1.23 | 실제 대화 삭제 확인 |
+| react-day-picker | 10.0.2 | shadcn Calendar |
+| date-fns | 4.4.0 | 한국어 날짜 표시 |
+| recharts | 3.10.1 | 애니메이션 통계 차트 |
+
+프로필은 서버의 colorIndex(0~399)로 20개 배경 hue × 20개 글자 hue를 지정한다. 배경색은 index % 20, 글자색은 floor(index / 20)으로 계산하여 배경 20색을 먼저 순환한다. `--participant-bg-hue`, `--participant-fg-hue`를 Avatar·참여자 선택·순위에서 재사용하고 프로필에는 이름의 앞 두 글자만 중앙에 표시한다. 대화 안에서 필터나 페이지가 바뀌어도 색은 고정된다. 차트는 상위 10명, 순위 표는 전체 참여자를 20명씩 보여준다.
+
+통계의 기본값은 전체 대화다. 넓은 화면은 중앙 통계·오른쪽 sticky 조건, 좁은 화면은 조건을 위에 배치한다. 조건 변경 시 숫자·차트를 450ms로 전환하며 prefers-reduced-motion이면 애니메이션을 끈다. 투머치 토커는 메시지 수 최대, 단답맨은 텍스트 10개 이상 중 1~5자 비율이 50% 초과인 참여자의 최대 비율, 장문가는 텍스트 10개 이상 평균 글자 수 최대, 야행성은 메시지 10개 이상 00~06시 비율 최대, 질문왕은 텍스트 10개 이상 물음표 메시지 비율 최대다. 동률은 공동 표시, 조건 미달은 없음으로 표시한다.
+
+AI 탭과 경로는 유지하지만 실제 대화에는 준비 중 안내만 제공한다. 가짜 결과·모의 실행·예시 일정 저장은 노출하지 않는다. 저장소 인터페이스·Supabase 어댑터는 백엔드에서 분리해 향후 S3 전환 경계를 유지한다.
+
+양쪽 타입·lint·빌드와 백엔드 20개 테스트, 실제 DB 롤백 검증을 수행했다. 브라우저의 로그인 계정에서 실제 빈 목록 API·업로드 입력을 확인했으며 hydration 오류 수정 후 issues 표시가 없음을 확인했다. Chrome 확장 파일 URL 접근 비활성으로 파일 선택 자동화·실제 사용자 파일 저장·원문/통계 populated 화면의 브라우저 검증은 미실행이다. 컨테이너 검증도 미실행이다.
+
 ## 공식 문서 우선 조회
 
 - [Next.js 공식 문서](https://nextjs.org/docs): App Router, Server/Client Components, 라우팅, 데이터 처리, 설정·배포를 확인한다.

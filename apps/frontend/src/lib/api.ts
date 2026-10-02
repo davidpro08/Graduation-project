@@ -15,6 +15,30 @@ export class ApiError extends Error {
   constructor(public readonly status: number, message: string) { super(message); }
 }
 
+export async function authenticatedRequest<T>(path: string, options: { method?: string; body?: BodyInit; signal?: AbortSignal } = {}): Promise<T> {
+  const auth = getAuthClient().auth;
+  const { data, error } = await auth.getSession();
+  if (error || !data.session) throw new ApiError(401, '로그인이 필요합니다.');
+  let response: Response;
+  try {
+    response = await fetch(`/api${path}`, { method: options.method ?? 'GET', body: options.body, cache:'no-store',
+      headers: { Authorization:`Bearer ${data.session.access_token}` },
+      signal: options.signal ? AbortSignal.any([options.signal,AbortSignal.timeout(60000)]) : AbortSignal.timeout(60000) });
+  } catch {
+    if (options.signal?.aborted) throw new DOMException('요청 취소','AbortError');
+    throw new ApiError(503,'서버 응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요.');
+  }
+  if (!response.ok) {
+    if (response.status===401) await auth.signOut({scope:'local'});
+    const payload: unknown = await response.json().catch(() => null);
+    const message = payload && typeof payload==='object' && 'message' in payload ? payload.message : null;
+    throw new ApiError(response.status, response.status===401 ? '로그인이 만료되었습니다. 다시 로그인해 주세요.' :
+      response.status===413 ? '파일은 최대 10MB까지 업로드할 수 있습니다.' : typeof message==='string' ? message : '요청을 처리하지 못했습니다. 입력 내용을 확인해 주세요.');
+  }
+  if (response.status===204) return undefined as T;
+  return response.json() as Promise<T>;
+}
+
 async function userRequest(method: 'GET' | 'PATCH', nickname?: string, signal?: AbortSignal): Promise<UserProfile> {
   const auth = getAuthClient().auth;
   const { data, error } = await auth.getSession();

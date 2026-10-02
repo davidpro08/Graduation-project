@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { conversationHref, conversationTabs, type Route } from '@/lib/navigation';
-import type { Conversation } from '@/features/conversations/demo';
+import type { Conversation } from '@/features/conversations/types';
 import { AccountMenu } from '@/features/auth/account-menu';
 
 export function Card({ title, children, className = '', action }: { title?: string; children: ReactNode; className?: string; action?: ReactNode }) {
@@ -32,9 +32,8 @@ export function Shell({ route, conversation, children }: { route: Route; convers
       </nav><div className="sidebar-note"><strong>근거를 먼저 확인하세요.</strong><p>AI의 제안은 서로의 대화를 이해하기 위한 참고 자료입니다.</p></div><Link className="health-link" href="/health">개발 환경 연결 상태</Link></aside>
       <main id="main-content" tabIndex={-1} className="main-content">
         <div className="page-heading"><div><p className="eyebrow">그랬잖아 · 대화 기록</p><h1>{titles[route.page]}</h1></div>{route.page === 'conversations' && <Button asChild><Link href="/upload">새 대화 업로드</Link></Button>}</div>
-        <p className="demo-label">화면 체험 · 합성 예시 데이터 / 변경은 현재 탭 메모리에만 유지됩니다.</p>
         {route.page === 'conversation' && conversation && <>
-          <p className="muted">참여자 {conversation.participants.join(', ')} · 예시 메시지 {conversation.messages.length}개</p>
+          <p className="muted">참여자 {conversation.participants.length}명 · 메시지 {conversation.messageCount.toLocaleString()}개 · {conversation.startDate.replaceAll('-','.')} – {conversation.endDate.replaceAll('-','.')}</p>
           <nav className="tabs" aria-label="대화 화면">{conversationTabs.map(tab => <Link key={tab.id} href={conversationHref(conversation.id, tab.id)} aria-current={route.tab === tab.id ? 'page' : undefined}>{tab.label}</Link>)}</nav>
         </>}
         {children}

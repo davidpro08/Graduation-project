@@ -1,37 +1,52 @@
 'use client';
-
-import { createContext, useContext, useState, type ReactNode } from 'react';
-import { demoConversations, initialSchedules, type Conversation, type SavedSchedule } from './demo';
-
-interface DemoStore {
-  conversations: Conversation[];
-  schedules: SavedSchedule[];
-  addConversation: (title: string) => string;
-  deleteConversation: (id: string) => void;
-  saveSchedule: (schedule: SavedSchedule) => void;
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useAuth } from '@/features/auth/provider';
+import { deleteConversation, getConversation, listConversations, uploadConversation } from './client';
+import type { Conversation } from './types';
+interface ConversationStore {
+  conversations: Conversation[]; loading: boolean; error: string; total:number; page:number;
+  setPage:(page:number)=>void; reload:()=>void;
+  search:string; setSearch:(search:string)=>void;
+  addConversation:(title:string,file:File,uploadId:string)=>Promise<string>;
+  deleteConversation:(id:string)=>Promise<void>;
 }
-const DemoContext = createContext<DemoStore | null>(null);
-
-export function DemoProvider({ children }: { children: ReactNode }) {
-  const [conversations, setConversations] = useState(demoConversations);
-  const [schedules, setSchedules] = useState(initialSchedules);
-  function addConversation(title: string) {
-    const id = crypto.randomUUID();
-    setConversations(items => [...items, { ...demoConversations[0], id, title }]);
-    return id;
+const ConversationContext=createContext<ConversationStore|null>(null);
+export function ConversationProvider({children}:{children:ReactNode}) {
+  const {userId}=useAuth();const owner=useRef(userId);owner.current=userId;
+  const [result,setResult]=useState<{owner:string|null;items:Conversation[];total:number}>({owner:null,items:[],total:0});
+  const [page,setPage]=useState(1);const [version,setVersion]=useState(0);const [loading,setLoading]=useState(false);const [error,setError]=useState('');
+  const [search,setSearch]=useState('');
+  useEffect(() => { setPage(1);setSearch('');setError(''); },[userId]);
+  useEffect(() => {
+    if (!userId) return;
+    const controller=new AbortController();setLoading(true);setError('');
+    const timer=setTimeout(()=>{listConversations(page,search,controller.signal).then(data=>{if(!controller.signal.aborted)setResult({owner:userId,...data});})
+      .catch(cause=>{if(!controller.signal.aborted)setError(cause instanceof Error?cause.message:'대화를 불러오지 못했습니다.');})
+      .finally(()=>{if(!controller.signal.aborted)setLoading(false);});},180);
+    return ()=>{clearTimeout(timer);controller.abort();};
+  },[userId,page,version,search]);
+  const reload=useCallback(()=>setVersion(value=>value+1),[]);
+  async function addConversation(title:string,file:File,uploadId:string) {
+    const startedOwner=userId;const data=await uploadConversation(title,file,uploadId);
+    if(owner.current!==startedOwner)throw new Error('로그인 계정이 변경되었습니다. 현재 계정의 대화 목록을 확인해 주세요.');
+    setPage(1);reload();return data.id;
   }
-  function deleteConversation(id: string) {
-    setConversations(items => items.filter(item => item.id !== id));
-    setSchedules(items => items.filter(item => item.conversationId !== id));
-  }
-  function saveSchedule(schedule: SavedSchedule) {
-    setSchedules(items => [...items.filter(item => item.id !== schedule.id), schedule]);
-  }
-  return <DemoContext.Provider value={{ conversations, schedules, addConversation, deleteConversation, saveSchedule }}>{children}</DemoContext.Provider>;
+  async function remove(id:string) { await deleteConversation(id);reload(); }
+  return <ConversationContext.Provider value={{conversations:result.owner===userId?result.items:[],total:result.owner===userId?result.total:0,
+    loading:!!userId && (loading || result.owner!==userId) && !error,error,page,setPage,search,setSearch:value=>{setSearch(value);setPage(1);},reload,addConversation,deleteConversation:remove}}>{children}</ConversationContext.Provider>;
 }
-
-export function useDemoStore() {
-  const store = useContext(DemoContext);
-  if (!store) throw new Error('DemoProvider가 필요합니다.');
-  return store;
+export function useConversationStore(){const value=useContext(ConversationContext);if(!value)throw new Error('ConversationProvider가 필요합니다.');return value;}
+export function useConversation(id:string|undefined) {
+  const {userId}=useAuth();const [result,setResult]=useState<{owner:string;conversation:Conversation}|null>(null);
+  const [error,setError]=useState('');const [loading,setLoading]=useState(false);const [version,setVersion]=useState(0);
+  useEffect(()=>{
+    if(!id || !userId)return;
+    const controller=new AbortController();setError('');setLoading(true);
+    getConversation(id,controller.signal).then(conversation=>{if(!controller.signal.aborted)setResult({owner:userId,conversation});})
+      .catch(cause=>{if(!controller.signal.aborted)setError(cause instanceof Error?cause.message:'대화를 불러오지 못했습니다.');})
+      .finally(()=>{if(!controller.signal.aborted)setLoading(false);});
+    return ()=>controller.abort();
+  },[id,userId,version]);
+  const conversation=result?.owner===userId && result.conversation.id===id?result.conversation:undefined;
+  return {conversation,error,loading:!!id && !!userId && (loading || !conversation) && !error,reload:()=>setVersion(value=>value+1)};
 }

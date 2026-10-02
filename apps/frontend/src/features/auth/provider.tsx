@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { getCurrentUser, type UserProfile } from '@/lib/api';
 import { getAuthClient } from './client';
@@ -8,11 +8,15 @@ import { getAuthClient } from './client';
 interface AuthStore {
   ready: boolean;
   signedIn: boolean;
+  userId: string | null;
   user: UserProfile | null;
   error: string;
   refreshProfile: () => Promise<UserProfile>;
 }
 const AuthContext = createContext<AuthStore | null>(null);
+const subscribeHydration = () => () => {};
+const clientHydrated = () => true;
+const serverHydrated = () => false;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
@@ -48,11 +52,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (currentSession.current?.user.id === profile.id) { setUser(profile); setError(''); }
     return profile;
   }, []);
-  return <AuthContext.Provider value={{ ready, signedIn: !!session, user, error, refreshProfile }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ ready, signedIn: !!session, userId:session?.user.id ?? null, user, error, refreshProfile }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
   const store = useContext(AuthContext);
+  const hydrated=useSyncExternalStore(subscribeHydration,clientHydrated,serverHydrated);
   if (!store) throw new Error('AuthProvider가 필요합니다.');
-  return store;
+  // 스트리밍된 페이지가 늦게 hydration되어도 최초 로그인 표시는 서버와 일치한다.
+  return hydrated?store:{...store,ready:false,signedIn:false,userId:null,user:null,error:''};
 }

@@ -65,10 +65,9 @@ export function LoginPage() {
           {error && <Notice tone="error">{error}</Notice>}
         </>}
         {notice && <Notice tone="error">{notice}</Notice>}{saved && <Notice tone="success">닉네임을 저장했습니다.</Notice>}
-        <div className="divider" /><p className="small muted">로그인 없이 합성 데이터로 화면을 살펴볼 수도 있습니다.</p>
-        <Button asChild variant="secondary"><Link href="/conversations">화면 체험하기</Link></Button>
+        <div className="divider" /><p className="small muted">로그인 후 카카오톡 대화를 업로드하고 원문과 통계를 확인하세요.</p>
       </Card>
     </div>
-    <p className="small muted">로그인과 사용자 프로필은 실제 서비스에 연결됩니다. 대화 업로드·저장·AI 분석은 현재 합성 데이터 체험입니다.</p>
+    <p className="small muted">업로드한 원본과 메시지는 계정별로 보관합니다. AI 분석은 연결 준비 중입니다.</p>
   </main>;
 }

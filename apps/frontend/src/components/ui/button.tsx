@@ -12,11 +12,13 @@ const buttonVariants = cva(
         default: 'button-primary',
         outline: 'button-outline',
         secondary: 'button-secondary',
+        ghost: 'hover:bg-muted',
+        link: 'text-primary underline-offset-4 hover:underline',
         evidence: 'button-evidence',
         destructive: 'button-destructive',
         'danger-outline': 'button-danger-outline',
       },
-      size: { default: 'min-h-12 px-6 py-3', sm: 'min-h-11 px-3 py-2', lg: 'min-h-12 px-8 py-3' },
+      size: { default: 'min-h-12 px-6 py-3', sm: 'min-h-11 px-3 py-2', lg: 'min-h-12 px-8 py-3', icon: 'h-11 w-11 p-0' },
     },
     defaultVariants: { variant: 'default', size: 'default' },
   },
@@ -28,4 +30,4 @@ function Button({ className, variant, size, asChild = false, ...props }:
   return <Component data-slot="button" className={cn(buttonVariants({ variant, size, className }))} {...props} />;
 }
 
-export { Button };
+export { Button, buttonVariants };
