@@ -73,7 +73,7 @@ EC2에서 Docker Compose로 두 컨테이너를 실행합니다. 커밋 SHA 태�
 
 ## 현재 상태와 개발 문서
 
-현재는 **M1 개발 기반 구성 완료 단계**입니다. Next.js·NestJS 앱을 pnpm workspace와 Turborepo로 구성했으며 상태 확인 API·Swagger·Docker 개발 환경이 있습니다. Figma 토큰 기반 8개 화면과 합성 데이터 체험을 구현했습니다. 인증·개인 저장·서버 파싱·AI·실제 배포는 미연결입니다.
+현재는 **M1 완료, M2 사용자 인증 연결 구현 단계**입니다. Next.js·NestJS 앱을 pnpm workspace와 Turborepo로 구성했으며 상태 확인 API·Swagger·Docker 개발 환경이 있습니다. Figma 토큰 기반 8개 화면과 합성 데이터 체험, Supabase 사용자 프로필·RLS·Bearer 검증·내 정보 조회와 수정, Google·GitHub·Kakao 프론트 OAuth 로그인 연결 코드를 구현했습니다. 실제 OAuth 로그인은 사용자 확인 전이며 대화 저장·서버 파싱·AI·실제 배포는 미연결입니다.
 
 ## 로컬 개발
 
@@ -101,7 +101,7 @@ docker compose up --build
 docker compose down
 ```
 
-`.env.example`을 `.env`로 복사하면 호스트 포트를 변경할 수 있습니다. 기본값 사용 시 복사하지 않아도 됩니다. Compose는 개발 전용이며 Next.js Node 운영 이미지와 HTTPS 진입점은 M4에서 구성합니다. DB·AI 서버를 로컬 컨테이너로 실행하지 않습니다.
+실행 전 저장소 루트의 `.env.example`을 Git 제외 `.env`로 복사하고 `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`를 설정합니다. Supabase Dashboard의 publishable 키를 사용하며 서버 secret/service_role 키는 필요하지 않습니다. 호스트 백엔드도 루트 `.env`를 읽습니다. 이번 작업의 로컬 `.env`에는 연결된 프로젝트의 공개 설정을 준비했습니다. Compose는 개발 전용이며 Next.js Node 운영 이미지와 HTTPS 진입점은 M4에서 구성합니다. DB·AI 서버를 로컬 컨테이너로 실행하지 않습니다.
 
 ### 호스트 실행·검증
 
@@ -121,7 +121,9 @@ pnpm build
 pnpm test
 ```
 
-`pnpm test`는 Turborepo가 백엔드를 빌드한 후 상태 API·Swagger 통합 테스트를 실행합니다. 현재 프론트 자동 테스트 스위트는 없으며 타입 검사·정적 검사·빌드와 개발 서버 연결로 검증합니다.
+`pnpm test`는 Turborepo가 백엔드를 빌드한 후 상태·Swagger·사용자·인증 통합 테스트를 실행합니다. 현재 프론트 자동 테스트 스위트는 없으며 타입 검사·정적 검사·빌드와 개발 서버 연결로 검증합니다.
+
+사용자 API는 `GET /api/users/me`, `PATCH /api/users/me`이며 Supabase 액세스 토큰을 Bearer 헤더로 전달합니다. 상세 계약은 [백엔드 API](.agents/backend/api.md#사용자-api-계약--2026-10-01), OAuth 설정 준비는 [인프라 지침](.agents/infra/guide.md#oauth-연결-준비--2026-10-01), 마이그레이션·롤백 검증은 [Supabase 기록](supabase/README.md)을 참조합니다.
 
 브랜치는 `codex/m<번호>/<기능>`, 커밋은 한 작업 단위의 `<type>(<scope>): <한국어 요약>`으로 나눕니다. 상세 규칙은 [하네스](.agents/agents.md#브랜치와-커밋-규칙)를 따릅니다. `.agents`와 잠금 파일은 추적하며 의존성·임시 파일·빌드 결과·비밀 설정은 제외합니다.
 
@@ -142,6 +144,12 @@ pnpm test
 
 ### 화면 체험
 
-/login에서 화면 체험하기를 선택합니다. /conversations, /upload, /conversation/team/messages·statistics·contradiction·opinions·schedules를 제공합니다. 변경은 현재 탭 메모리에만 유지됩니다. 실제 파일은 로컬 미리보기만 지원하고 서버에 전송하지 않습니다. 상세는 [.agents/frontend/screens.md](.agents/frontend/screens.md)를 참조합니다.
+/login에서 Google·GitHub·카카오 공식 버튼으로 로그인을 시작하거나 화면 체험하기를 선택합니다. 로그인 후 상단 내 계정에서 닉네임 수정과 로그아웃을 제공합니다. 대화는 /conversations, /upload, /conversation/team/messages·statistics·contradiction·opinions·schedules의 합성 예시입니다. 예시 변경은 현재 탭 메모리에만 유지됩니다. 실제 파일은 로컬 미리보기만 지원하고 서버에 전송하지 않습니다. 상세는 [.agents/frontend/screens.md](.agents/frontend/screens.md)를 참조합니다.
 
 프로덕션 로컬 실행은 빌드 후 pnpm --filter @gratta/frontend start이며 포트는 5173입니다. API 프록시 기본 대상은 http://127.0.0.1:3000입니다.
+
+### 로그인 직접 확인
+
+루트 .env의 SUPABASE_URL·SUPABASE_PUBLISHABLE_KEY를 프론트도 사용합니다. 공개 publishable 키만 전달하며 제공자 Client Secret은 Supabase Dashboard에 둡니다. 환경변수가 바뀌었다면 dev 서버를 재시작합니다. `pnpm dev`로 두 앱을 실행하고 http://localhost:5173/login에서 로그인하세요. Supabase Redirect URLs에는 http://localhost:5173/auth/callback이 등록되어 있어야 합니다. 제공자 앱 Callback URL은 Supabase Dashboard에 표시된 https://fthzjaeucyiudbjxmlgu.supabase.co/auth/v1/callback입니다.
+
+로그인 후 /conversations로 이동하면 상단 내 계정에서 닉네임 저장과 로그아웃을 확인할 수 있습니다. SDK 세션은 브라우저에 유지하며 로그인 시작·완료 시 동일 hostname을 사용하세요. 공식 버튼·로고 출처는 [리소스 기록](apps/frontend/public/auth/README.md)에 있습니다. 이번 프론트 OAuth 변경은 사용자 요청에 따라 테스트·타입 검사·lint·빌드·실로그인 검증을 실행하지 않았습니다.
