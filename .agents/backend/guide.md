@@ -1,5 +1,13 @@
 # 백엔드 지침
 
+## 대화 업로드·통계 구현 · 2026-10-03
+
+`conversations` 기능 모듈을 추가했다. 컨트롤러는 multipart·DTO·날짜 검증, 서비스는 파싱·원본/DB 저장·재시도·삭제 흐름, KakaoParser는 파일 해석, ConversationRepository·OriginalFiles 인터페이스와 Supabase 구현은 외부 접근을 담당한다. 어댑터·의존성 주입으로 DB/Storage를 화면·HTTP·파서에서 분리했다. 별도 큐·워커·AI 호출은 추가하지 않았다.
+
+원본 파일은 Storage API로 처리하고 DB import는 단일 트랜잭션 RPC를 사용한다. 통계도 요청자 RLS를 유지한 SQL RPC에서 전체 데이터를 집계한다. 본문·파일명·외부 상세 오류를 로그로 남기지 않는다. 비정상 외부 예외는 503으로 변환하며 입력·인증·권한 오류는 해당 HTTP 상태를 유지한다. 업로드 실패·응답 유실·부분 삭제·중복 ID 처리는 [API 계약](api.md#대화-api-실제-계약--2026-10-03)을 따른다.
+
+파일 타입용 `@types/multer` 2.3.0을 개발 의존성으로 추가하고 tsconfig types에 등록했다. 기존 Nest FileInterceptor를 사용하며 별도 런타임 업로드 라이브러리는 추가하지 않았다. 백엔드 타입·lint·빌드·Node 테스트 20개를 통과했다. 새 10개 검증은 PC/모바일·인코딩·날짜/시간·400명·multipart·소유권·중복 요청·DB 실패·원본 삭제 실패를 포함한다. DB 통계/RLS/연쇄 삭제는 별도 실제 DB 롤백 SQL로 검증했다.
+
 ## 공식 문서 우선 조회
 
 - [NestJS 공식 문서](https://docs.nestjs.com/): 모듈·DI, 컨트롤러·DTO, OpenAPI/Swagger, 테스트·설정을 확인한다.
