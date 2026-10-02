@@ -10,6 +10,7 @@ build/
 .vite/
 coverage/
 *.tsbuildinfo
+supabase/.temp/
 
 # 실제 환경 설정·비밀 값; 값이 없는 예제는 추적
 .env
