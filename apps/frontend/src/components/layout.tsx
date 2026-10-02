@@ -21,7 +21,7 @@ export function Empty({ title, children }: { title: string; children?: ReactNode
 }
 
 export function Shell({ route, conversation, children }: { route: Route; conversation?: Conversation; children: ReactNode }) {
-  const titles = { login: '로그인', conversations: '내 대화', upload: '대화 업로드', health: '개발 환경', conversation: conversation?.title ?? '대화를 찾을 수 없습니다' };
+  const titles = { login: '로그인', conversations: '내 대화', upload: '대화 업로드', health: '개발 환경', conversation: conversation?.title ?? '불러오는 중입니다' };
   return <>
     <Link className="skip-link" href="#main-content" onClick={event => { event.preventDefault(); document.getElementById('main-content')?.focus(); }}>본문으로 이동</Link>
     <header className="topbar"><Link href="/conversations" className="brand">그랬잖아</Link><span className="topbar-note">대화에서 찾는 근거, 함께 이해하는 관점</span><AccountMenu /></header>

@@ -1,6 +1,7 @@
 'use client';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useAuth } from '@/features/auth/provider';
+import { ApiError } from '@/lib/api';
 import { deleteConversation, getConversation, listConversations, uploadConversation } from './client';
 import type { Conversation } from './types';
 interface ConversationStore {
@@ -37,16 +38,19 @@ export function ConversationProvider({children}:{children:ReactNode}) {
 }
 export function useConversationStore(){const value=useContext(ConversationContext);if(!value)throw new Error('ConversationProvider가 필요합니다.');return value;}
 export function useConversation(id:string|undefined) {
-  const {userId}=useAuth();const [result,setResult]=useState<{owner:string;conversation:Conversation}|null>(null);
-  const [error,setError]=useState('');const [loading,setLoading]=useState(false);const [version,setVersion]=useState(0);
+  const {userId}=useAuth();
+  const [result,setResult]=useState<{owner:string;id:string;version:number;conversation?:Conversation;error?:string;notFound?:boolean}|null>(null);
+  const [version,setVersion]=useState(0);
   useEffect(()=>{
     if(!id || !userId)return;
-    const controller=new AbortController();setError('');setLoading(true);
-    getConversation(id,controller.signal).then(conversation=>{if(!controller.signal.aborted)setResult({owner:userId,conversation});})
-      .catch(cause=>{if(!controller.signal.aborted)setError(cause instanceof Error?cause.message:'대화를 불러오지 못했습니다.');})
-      .finally(()=>{if(!controller.signal.aborted)setLoading(false);});
+    const controller=new AbortController();
+    getConversation(id,controller.signal).then(conversation=>{if(!controller.signal.aborted)setResult({owner:userId,id,version,conversation});})
+      .catch(cause=>{if(!controller.signal.aborted)setResult({owner:userId,id,version,
+        error:cause instanceof Error?cause.message:'대화를 불러오지 못했습니다.',notFound:cause instanceof ApiError && cause.status===404});});
     return ()=>controller.abort();
   },[id,userId,version]);
-  const conversation=result?.owner===userId && result.conversation.id===id?result.conversation:undefined;
-  return {conversation,error,loading:!!id && !!userId && (loading || !conversation) && !error,reload:()=>setVersion(value=>value+1)};
+  // 현재 계정·대화·재조회 요청의 결과만 표시하여 이전 404가 다음 화면에 남지 않게 한다.
+  const current=result?.owner===userId && result.id===id && result.version===version?result:null;
+  return {conversation:current?.conversation,error:current?.error ?? '',notFound:current?.notFound ?? false,
+    loading:!!id && !current,reload:()=>setVersion(value=>value+1)};
 }
