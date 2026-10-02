@@ -4,10 +4,12 @@ const { Test } = require('@nestjs/testing');
 const request = require('supertest');
 const { AppModule } = require('../dist/app.module');
 const { configureApp } = require('../dist/configure-app');
+const { SupabaseService } = require('../dist/supabase/supabase.service');
 
 let app;
 before(async () => {
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+  const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+    .overrideProvider(SupabaseService).useValue({}).compile();
   app = moduleRef.createNestApplication();
   configureApp(app);
   await app.init();
