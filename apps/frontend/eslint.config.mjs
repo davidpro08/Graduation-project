@@ -5,6 +5,7 @@ export default [
   { ignores: ['dist/**', '.next/**', 'node_modules/**', 'next-env.d.ts'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
+  { languageOptions: { parserOptions: { tsconfigRootDir: import.meta.dirname } } },
   {
     files: ['src/**/*.{ts,tsx}'],
     plugins: { 'react-hooks': reactHooks },
