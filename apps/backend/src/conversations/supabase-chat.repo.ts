@@ -49,6 +49,12 @@ export class SupabaseChatRepo implements ConversationRepository {
     if (error) return unavailable();
   }
   async messages(user: AuthUser, id: string, filter: ChatFilter): Promise<MessagePage> {
+    if(filter.messageId){
+      const {data,error}=await this.supabase.forUser(user.token).from('messages').select('sequence').eq('owner_id',user.id).eq('conversation_id',id).eq('id',filter.messageId).maybeSingle();
+      if(error)return unavailable();if(!data)throw new NotFoundException('근거 메시지를 찾을 수 없습니다.');
+      // sequence는 0부터 시작한다. 근거 링크는 필터를 해제하고 해당 페이지를 조회한다.
+      return this.messages(user,id,{page:Math.floor(Number(data.sequence)/(filter.pageSize??100))+1,pageSize:filter.pageSize});
+    }
     let query = this.supabase.forUser(user.token).from('messages').select('id,sequence,participant_id,message_date,message_time,body,kind,participants(name)',{count:'exact'})
       .eq('owner_id',user.id).eq('conversation_id',id);
     if (filter.from) query=query.gte('message_date',filter.from);

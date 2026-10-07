@@ -7,5 +7,5 @@ export default [
   js.configs.recommended,
   ...tseslint.configs.recommended,
   { languageOptions: { globals: globals.node, parserOptions: { tsconfigRootDir: import.meta.dirname } } },
-  { files: ['tests/**/*.cjs'], rules: { '@typescript-eslint/no-require-imports': 'off' } },
+  { files: ['tests/**/*.cjs', 'scripts/**/*.cjs'], rules: { '@typescript-eslint/no-require-imports': 'off' } },
 ];

@@ -7,6 +7,7 @@ export class UploadDto {
   @IsString() @MinLength(1) @MaxLength(80) title!: string;
 }
 export class ChatQuery {
+  @ApiPropertyOptional() @IsOptional() @IsUUID('4') messageId?: string;
   @ApiPropertyOptional() @IsOptional() @Matches(/^\d{4}-\d{2}-\d{2}$/) from?: string;
   @ApiPropertyOptional() @IsOptional() @Matches(/^\d{4}-\d{2}-\d{2}$/) to?: string;
   @ApiPropertyOptional() @IsOptional() @IsUUID('4') participantId?: string;

@@ -12,6 +12,15 @@ services:
       NODE_ENV: development
       SUPABASE_URL: "${SUPABASE_URL:?SUPABASE_URL을 .env에 설정하세요}"
       SUPABASE_PUBLISHABLE_KEY: "${SUPABASE_PUBLISHABLE_KEY:?SUPABASE_PUBLISHABLE_KEY를 .env에 설정하세요}"
+      JEV_ENABLED: "${JEV_ENABLED:-false}"
+      TYPESAFE_API_KEY: "${TYPESAFE_API_KEY:-}"
+      JEV_MODEL: "${JEV_MODEL:-jev-latest}"
+      JEV_TIMEOUT_MS: "${JEV_TIMEOUT_MS:-5000}"
+      JEV_SKIP_THRESHOLD: "${JEV_SKIP_THRESHOLD:-0.2}"
+      ANALYSIS_TIMEOUT_MS: "${ANALYSIS_TIMEOUT_MS:-7200000}"
+      SCHOOL_AI_BASE_URL: "${SCHOOL_AI_BASE_URL:-http://host.docker.internal:18080/v1}"
+      SCHOOL_AI_MODEL: "${SCHOOL_AI_MODEL:-Qwen/Qwen3-32B-AWQ}"
+      SCHOOL_AI_API_KEY: "${SCHOOL_AI_API_KEY:-}"
       TSC_WATCHFILE: DynamicPriorityPolling
       TSC_WATCHDIRECTORY: DynamicPriorityPolling
     volumes:

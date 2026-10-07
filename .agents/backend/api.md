@@ -1,6 +1,6 @@
 # 서비스 API 설계 초안
 
-상태 확인·사용자·대화 업로드·원문·통계 API를 구현했다. 분석·일정 API는 미구현 설계 초안이다. 외부 경로는 `/api`를 기준으로 한다. Supabase Auth 로그인 자체는 NestJS 로그인 API로 중복 구현하지 않는다.
+상태 확인·사용자·대화·원문·통계 및 모순 후보·일정 분석 API를 구현했다. 아래 과거 기록보다 마지막 실제 계약을 우선한다. 외부 경로는 `/api`를 기준으로 한다. 관점별 의견은 구현하지 않는다.
 
 | 메서드 | 경로 | 인증 | 목적 | 구현 상태 |
 | --- | --- | --- | --- | --- |
@@ -15,19 +15,24 @@
 | GET | `/api/conversations/:conversationId/messages` | Bearer | 구조화 원문 검색·필터·페이지 조회 | 구현 |
 | DELETE | `/api/conversations/:conversationId` | Bearer | 비공개 원본 삭제 후 대화·참여자·메시지 삭제 | 구현 |
 | GET | `/api/conversations/:conversationId/statistics` | Bearer | 메시지·글자·참여자·날짜·시간대 SQL 집계 | 구현 |
-| POST | `/api/conversations/:conversationId/analyses` | 필요 | 분석 생성, HTTP 202와 작업 ID 반환 | 미구현 |
-| GET | `/api/analyses/:jobId` | 필요 | 작업 상태·실패 코드 조회 | 미구현 |
-| GET | `/api/analyses/:jobId/result` | 필요 | 완료된 분석 결과·근거 조회 | 미구현 |
-| GET | `/api/conversations/:conversationId/schedules` | 필요 | 일정 후보·확인된 일정 조회 | 미구현 |
-| POST | `/api/schedules/:scheduleId/confirm` | 필요 | 후보를 확인된 일정으로 전환 | 미구현 |
-| PATCH | `/api/schedules/:scheduleId` | 필요 | 본인의 확인된 일정 수정 | 미구현 |
+| POST | `/api/conversations/:conversationId/analyses` | Bearer | 분석 생성, HTTP 202와 작업 `id` 반환 | 구현 |
+| GET | `/api/conversations/:conversationId/analyses?type=` | Bearer | 마지막 저장 작업 `{job:작업 또는 null}` | 구현 |
+| GET | `/api/analyses/:jobId` | Bearer | 작업 상태·실패 코드 조회 | 구현 |
+| GET | `/api/analyses/:jobId/result` | Bearer | 완료된 분석 결과·근거 조회 | 구현 |
+| GET | `/api/conversations/:conversationId/schedules` | Bearer | 일정 후보·확인된 일정 배열 | 구현 |
+| POST | `/api/schedules/:scheduleId/confirm` | Bearer | 후보를 확인된 일정으로 전환 | 구현 |
+| PATCH | `/api/schedules/:scheduleId` | Bearer | 본인의 확인된 일정 수정 | 구현 |
 
 ## 최소 계약과 동작
 
+긴 대화 처리 수정: 구간 200개 제한을 제거했다. 작업 시간은 `ANALYSIS_TIMEOUT_MS` 기본 2시간이며 소유자의 상태 조회로 검증된 최신 토큰을 작업에 전달한다. 공개 요청/응답 형식은 유지한다. 기존 `ANALYSIS_TOO_LARGE` 실패 작업은 재분석 시 새 작업으로 처리한다.
+
+2026-10-03에 JEV·학교 Qwen을 분석 작업과 DB·화면에 연결했다. 상세 입력·응답·제한은 [분석 실제 계약](../AI/analysis-flow.md#api-실제-계약)을 따른다.
+
 - 인증은 Supabase 액세스 토큰을 `Authorization: Bearer ...`로 전달한다. 인증 실패와 타인 데이터 접근을 거절한다.
 - 업로드는 초기 카카오톡 내보내기 텍스트로 한정한다. 필드명 `file`을 사용하며 지원 형식·크기·인코딩·파싱 실패 응답은 구현 시 확정한다.
-- 분석 종류는 `contradiction`, `persona`, `schedule`로 구분한다. 한 작업은 한 종류를 처리한다. 통계는 NestJS가 소유권 확인 후 RLS가 적용되는 DB 집계 함수를 호출한다.
-- 분석 생성 응답은 `jobId`, `status`를 포함한다. 조회 상태는 `pending | processing | completed | failed`다. 실패 시 비밀 정보 없는 `errorCode`를 포함한다.
+- 분석 종류는 `contradiction`, `schedule`만 허용한다. 한 작업은 한 종류를 처리한다. 관점별 의견은 미구현이다. 통계는 NestJS가 소유권 확인 후 RLS가 적용되는 DB 집계 함수를 호출한다.
+- 분석 생성 응답은 `id`, `status`를 포함하는 작업 객체다. 조회 상태는 `pending | processing | completed | failed`다. 실패 시 비밀 정보 없는 `errorCode`를 포함한다.
 - 완료 전 결과 요청은 HTTP 409, 없는 리소스는 404로 처리한다. 타인 리소스 접근은 존재 여부 노출을 피하도록 404로 처리한다.
 - 결과는 [AI 계약](../AI/api.md)을 검증하여 저장한 데이터다. 근거 메시지 ID는 요청한 대화에 속해야 한다.
 - 일정 후보는 `proposed`, 확인된 일정은 `confirmed`로 구분한다. 확인 전 날짜·시간의 불명확성을 사용자가 해결한다. 확인 동작은 반복해도 중복 일정을 만들지 않는다.
@@ -86,3 +91,9 @@ PC 한국어 날짜 구분선 + `[이름] [오전/오후 시:분]`, 모바일 �
 원본 업로드 후 SECURITY INVOKER RPC가 대화·참여자·메시지를 한 트랜잭션으로 저장한다. 원본 SHA-256과 uploadId를 기록한다. 같은 ID·같은 파일 재시도는 기존 대화를 반환한다. DB 저장 실패 시 원본을 정리하지만 저장 완료 여부를 확인할 수 없으면 보존하여 재시도에 사용한다. DB 행 없는 기존 원본이 같은 바이트이면 재사용한다. 프로세스 내 같은 ID 동시 요청은 409로 제한하며 분산 락은 제공하지 않는다. 확인 불가능한 원본을 정리하는 운영 배치와 자동 재파싱 UI는 이번 범위에 없다.
 
 Storage 삭제가 실패하면 DB를 유지하고, DB 삭제만 실패하면 메시지는 남으므로 삭제 재시도로 완료한다. 브라우저 요청 제한은 60초, SDK 외부 호출 제한은 요청당 10초다. 클라이언트의 응답 대기 취소가 서버 트랜잭션을 취소한다고 보장하지 않는다. 폴링·AI 호출·외부 캘린더 연결은 없다.
+
+## 일정 시각 계약 추가 · 2026-10-03
+
+일정 조회는 `endsAt: string|null` 및 근거 메시지 시점 기준 `suggestion`을 제공한다. suggestion 필드는 `date`, `time`, `endTime`(nullable), `referenceDate`, `referenceTime`, `warnings: string[]`다. 제안은 저장·확정 상태를 변경하지 않는다.
+
+일정 확정 POST와 수정 PATCH는 기존 title/date/time에 선택적 `endTime`(HH:mm)을 받는다. 생략하면 종료 시각은 null이며 같은 날 시작 시각보다 늦어야 한다. 잘못된 시각·역전 범위는 400이다. 한국 시간으로 저장하고 기존 확정값을 제안으로 덮어쓰지 않는다.

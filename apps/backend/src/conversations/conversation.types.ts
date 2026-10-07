@@ -14,5 +14,5 @@ export interface Statistics {
   participants: { id: string; name: string; colorIndex: number; count: number; textCount: number; characters: number; shortCount: number; nightCount: number; questionCount: number }[];
   daily: { date: string; count: number }[]; hourly: { hour: number; count: number }[];
 }
-export interface ChatFilter { from?: string; to?: string; participantId?: string; search?: string; page?: number; pageSize?: number }
+export interface ChatFilter { messageId?: string; from?: string; to?: string; participantId?: string; search?: string; page?: number; pageSize?: number }
 export interface ChatUpload { id: string; title: string; sourcePath: string; sourceHash: string; parsed: ParsedChat }
