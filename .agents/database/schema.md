@@ -1,5 +1,9 @@
 # DB 스키마와 원격 상태
 
+## 최신 분석·일정 저장 · 2026-10-03
+
+`analysis_jobs`, `schedules`와 SECURITY INVOKER `complete_analysis`를 실제 프로젝트에 적용했다. 사용자 RLS·복합 FK·완료/후보 원자적 저장·근거 검증·대화 연쇄 삭제를 확인했다. [컬럼·제약·로컬/원격 마이그레이션 버전 매핑](../AI/analysis-flow.md#db)을 따른다. 신규 보안·FK 인덱스 지적 없음. 이전 미구현 분석 표는 설계 기록이다.
+
 ## 공식 문서 우선 조회
 
 - [Supabase 공식 문서](https://supabase.com/docs): Database·Auth·Storage, RLS·권한, 클라이언트·CLI 문서를 확인한다.
@@ -159,3 +163,7 @@ Storage SELECT/INSERT/DELETE 정책은 비공개 버킷과 경로의 첫 폴더�
 목록 조회용 `(owner_id,created_at,id)`, 원문용 대화·날짜·순서 및 참여자·날짜 인덱스를 추가했다. advisor가 지적한 복합 FK용 인덱스 3개도 추가했으며 재점검에서 신규 외래 키 지적은 0개다. 기존 페르소나의 정책 없음·미사용 인덱스 INFO와 Auth 유출 비밀번호 보호 비활성 WARN은 이 작업과 별개이며 변경하지 않았다.
 
 `supabase/tests/conversations.sql`을 실제 DB에서 실행해 합성 Auth 사용자 둘·대화·메시지의 import, 문자·단답·질문·야간·날짜/참여자 집계, 빈 날짜 0개, 빈 결과, 타인 SELECT/DELETE 차단, 소유자 변경 차단, 연쇄 삭제를 검증하고 롤백했다. 테스트 계정 잔존 0건이다. 실제 Storage API 업로드·다운로드 전체 검증은 미실행이다.
+
+## 일정 종료 시각 · 2026-10-03
+
+`schedules.ends_at`은 nullable timestamptz다. DB CHECK는 종료 시각이 있으면 starts_at이 있고 ends_at > starts_at임을 강제한다. RLS와 기존 완료 RPC는 유지한다. 로컬 `20261003124739_schedule_end_time.sql`은 원격 MCP 이력 `20261003124914_schedule_end_time`으로 적용됐다. 상대 날짜 제안은 근거 메시지 조회 시 계산하며 DB에 자동 확정하지 않는다. 실제 SQL 테스트에서 정상 종료 저장과 역전 제약 거절을 확인했다.
