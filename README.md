@@ -17,6 +17,8 @@
 
 대화 업로드·원문·통계는 실제 데이터에 연결했습니다. AI 기능은 준비 중입니다.
 
+백엔드에 공식 TypeSafe JEV SDK와 전역·호출별 사용 분기를 추가했습니다. 기본은 비활성화이며 `.env.example`의 `JEV_ENABLED`, `TYPESAFE_API_KEY`로 설정합니다. 모델 분석·후보 선별·화면 연결은 아직 없으며 학교 모델 서버 설정은 별도로 진행합니다. [JEV 연결 계약](.agents/AI/api.md#jev-사전-판단-실제-계약--2026-10-03)을 참조하세요.
+
 | 기능 | 제공할 내용 |
 | --- | --- |
 | 대화 업로드·파싱 | 카카오톡 내보내기 텍스트를 날짜·발화자·본문으로 구조화 |
@@ -46,7 +48,7 @@ flowchart LR
 | 프론트엔드 | Next.js App Router, React, TypeScript, Tailwind CSS, shadcn/ui; 화면·입력·상태 표시 |
 | 백엔드 | NestJS, TypeScript, Swagger; 인증 검증·파싱·통계·AI 작업 관리·결과 저장 |
 | 데이터베이스 | Supabase Auth, PostgreSQL, 비공개 Storage; 사용자와 데이터 보관 |
-| AI 서버 | 로컬 모델 실행 서버 또는 GPU 대여 서버; 모델·제공자 미선정 |
+| AI 서버 | 학교 RTX 4090·Qwen3-32B 양자화 모델을 선택, 원격 설정 진행 중; JEV는 별도 TypeSafe API |
 
 React는 인증을 위해 Supabase Auth에 연결하고 서비스 데이터는 NestJS를 통해 접근합니다. AI 서버는 구조화된 결과를 반환하고 NestJS가 검증·저장합니다. AI 서버에 DB 관리 권한을 부여하지 않습니다.
 
