@@ -1,0 +1,16 @@
+FROM node:24-bookworm-slim
+
+# Nest CLI가 watch 재시작 시 하위 프로세스를 찾는 데 ps를 사용합니다.
+RUN apt-get update && apt-get install -y --no-install-recommends procps && rm -rf /var/lib/apt/lists/*
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+RUN npm install --global pnpm@10.15.0
+WORKDIR /workspace
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/frontend/package.json ./apps/frontend/package.json
+COPY apps/backend/package.json ./apps/backend/package.json
+RUN pnpm install --frozen-lockfile
+COPY . .
+
+# 개발 의존성을 포함하는 로컬 전용 이미지입니다.
+# Compose가 서비스별 개발 명령을 지정합니다.
