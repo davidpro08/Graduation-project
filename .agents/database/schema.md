@@ -6,7 +6,7 @@
 - DB 기술을 조사할 때 위 공식 문서에서 해당 제품과 주제를 먼저 확인한다. 연결된 Supabase 문서 검색 도구가 있으면 공식 문서 범위에서 검색하고 원문을 확인한다.
 - 기능 구현·설정 변경 전 공식 변경 이력과 사용하는 SDK·CLI 버전의 호환성을 확인한다. 자료가 부족하면 Context7와 Supabase 공식 저장소의 이슈·릴리스로 보완한다. PostgreSQL 자체 기능은 PostgreSQL 공식 문서도 확인한다.
 
-Supabase Auth·PostgreSQL·비공개 Storage를 사용하는 설계다. **페르소나 참조 테이블과 사용자 프로필은 원격 DB에 구현됐고, 대화·분석·일정 테이블은 개념 설계 단계다.** 프론트 컴포넌트·백엔드 클래스 구조를 DB 스키마로 그대로 복제하지 않는다. 아래 실제 상태는 2026-10-01에 관리 API와 PostgreSQL 카탈로그를 다시 조회해 확인했다.
+Supabase Auth·PostgreSQL·비공개 Storage를 사용한다. **페르소나·프로필·대화·참여자·메시지와 비공개 원본 버킷을 원격에 구현했다. 분석·일정은 개념 설계 단계다.** 아래 2026-10-01 원격 표는 당시 기록이며 대화 관련 최신 계약은 이 문서의 2026-10-03 절을 따른다.
 
 ## 원격 Supabase 상태
 
@@ -138,3 +138,24 @@ RLS 정책 `profiles_select_own`, `profiles_update_own`은 `(select auth.uid()) 
 원격·로컬 SQL 본문 일치와 원격 정책·컬럼 권한을 확인했다. [검증 SQL](../../supabase/tests/profiles.sql)은 합성 Auth 사용자 둘을 트랜잭션에서 생성해 트리거, 정규화, 제약, 본인·타인 접근, 삽입·삭제·보호 컬럼 차단과 연쇄 삭제를 검증한 후 롤백한다. 실행 후 Auth 사용자·프로필 모두 0건이고 페르소나 50,000건·RLS를 유지했다.
 
 보안 advisor의 신규 사용자 스키마 지적은 없다. 기존 페르소나의 정책 0개는 일반 접근 차단을 위한 의도된 상태이며 INFO `rls_enabled_no_policy`가 유지된다. [advisor 설명](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy)을 참조한다.
+
+## 대화·Storage 실제 계약 · 2026-10-03
+
+원격 마이그레이션 `20261002200045_conversation_storage`, `20261002201431_conversation_fk_indexes`를 적용했다. CLI로 신규 파일을 만든 뒤 이번 작업에서 생성한 두 파일 이름만 원격 기록에 맞췄다. 원격 이력의 버전 직접 수정은 자동 승인 검토에서 거절되어 실행되지 않았다.
+
+| 테이블 | 주요 필드·관계 |
+| --- | --- |
+| conversations | UUID id·Auth owner_id, 제목, source_path·SHA-256, parser_version=kakao-v1, warnings JSONB, message_count, start_date/end_date, created_at |
+| participants | UUID id, conversation_id·owner_id 복합 FK, name, color_index(0~399); 대화별 이름·색 인덱스 유일 |
+| messages | UUID id, conversation_id·owner_id 복합 FK, participant_id·conversation_id·owner_id 복합 FK, sequence, message_date/date·message_time/time, body, kind, 생성 character_count |
+| conversation-originals | 비공개 Storage 버킷, 10MiB 제한, text/plain. `<owner>/<conversation>/original.txt` |
+
+대화 삭제 시 참여자·메시지는 연쇄 삭제된다. 메시지 순서는 대화별 유일하며 시스템만 participant_id=null을 허용한다. 같은 이름은 같은 참여자로 처리한다. source_path는 소유자·대화 UUID와 반드시 일치한다. 각 공개 테이블의 RLS는 `(select auth.uid())=owner_id`를 USING·WITH CHECK에 적용한다. anon/PUBLIC 접근은 회수하고 authenticated에 필요한 CRUD 권한을 부여한다. 하위 소유자·참여자 FK가 다른 대화나 소유자 혼합을 막는다.
+
+Storage SELECT/INSERT/DELETE 정책은 비공개 버킷과 경로의 첫 폴더가 인증 사용자 ID인 경우만 허용한다. 원본은 덮어쓰지 않으며 같은 파일의 실패 재시도는 서버가 바이트 비교 후 재사용한다. 공개 URL·서버 비밀 키·서비스 역할 우회는 사용하지 않는다. 계정 삭제 API와 Storage 자동 고아 파일 정리 작업은 아직 없다.
+
+`import_conversation`은 SECURITY INVOKER·빈 search_path·인증 사용자 실행 권한이며 구조화 데이터를 한 트랜잭션으로 저장한다. `conversation_statistics`도 INVOKER로 실행해 RLS를 유지한다. 날짜·시각은 내보내기 파일의 한국 시간 표기를 보존한다. character_count는 공백 제거 후 char_length로 생성한다. 날짜/참여자 필터·시간대/캐릭터 정의는 backend/api.md를 따른다.
+
+목록 조회용 `(owner_id,created_at,id)`, 원문용 대화·날짜·순서 및 참여자·날짜 인덱스를 추가했다. advisor가 지적한 복합 FK용 인덱스 3개도 추가했으며 재점검에서 신규 외래 키 지적은 0개다. 기존 페르소나의 정책 없음·미사용 인덱스 INFO와 Auth 유출 비밀번호 보호 비활성 WARN은 이 작업과 별개이며 변경하지 않았다.
+
+`supabase/tests/conversations.sql`을 실제 DB에서 실행해 합성 Auth 사용자 둘·대화·메시지의 import, 문자·단답·질문·야간·날짜/참여자 집계, 빈 날짜 0개, 빈 결과, 타인 SELECT/DELETE 차단, 소유자 변경 차단, 연쇄 삭제를 검증하고 롤백했다. 테스트 계정 잔존 0건이다. 실제 Storage API 업로드·다운로드 전체 검증은 미실행이다.

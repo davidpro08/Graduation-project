@@ -1,5 +1,37 @@
 # 프론트엔드 지침
 
+## 실제 대화·통계 연결 · 2026-10-03
+
+더미 대화·일정·고정 AI 결과를 제거하고 인증된 사용자 전용 실제 API Provider로 전환했다. 원본 TXT 업로드·원문 페이지 조회·서버 통계·삭제를 연결했다. 입력 상태와 서버 응답을 분리하고 이전 조회를 취소해 빠른 조건 변경에서 늦은 응답이 화면을 덮지 않게 했다. 로그인 표시에는 useSyncExternalStore의 서버 스냅샷을 사용하여 스트리밍 hydration 불일치를 수정했다.
+
+shadcn 공식 레지스트리 소스로 Calendar·Popover·Select·Input·Avatar·Badge·Chart·Skeleton·AlertDialog를 추가했다. 프로젝트 Button의 브랜드 변형은 유지하고 ghost/link/icon을 보완했다. Calendar는 한국어·월/연 선택·날짜 제한·조건 해제, Select는 참여자 타입어헤드·스크롤을 제공한다. Chart는 Recharts 3와 호환되는 new-york-v4 소스를 사용하며 cn 경로를 프로젝트에 맞췄다.
+
+| 패키지 | 설치·잠금 기준 버전 | 용도 |
+| --- | --- | --- |
+| @radix-ui/react-popover | 1.1.23 | 날짜 팝오버 |
+| @radix-ui/react-select | 2.3.7 | 참여자 선택 |
+| @radix-ui/react-avatar | 1.2.6 | 참여자 프로필 |
+| @radix-ui/react-alert-dialog | 1.1.23 | 실제 대화 삭제 확인 |
+| react-day-picker | 10.0.2 | shadcn Calendar |
+| date-fns | 4.4.0 | 한국어 날짜 표시 |
+| recharts | 3.10.1 | 애니메이션 통계 차트 |
+
+프로필은 서버의 colorIndex(0~399)로 20개 배경 hue × 20개 글자 hue를 지정한다. 배경색은 index % 20, 글자색은 floor(index / 20)으로 계산하여 배경 20색을 먼저 순환한다. `--participant-bg-hue`, `--participant-fg-hue`를 Avatar·참여자 선택·순위에서 재사용하고 프로필에는 이름의 앞 두 글자만 중앙에 표시한다. 대화 안에서 필터나 페이지가 바뀌어도 색은 고정된다. 차트는 상위 10명, 순위 표는 전체 참여자를 20명씩 보여준다.
+
+대화 조회 전에는 제목과 본문에 `불러오는 중입니다`를 표시한다. 조회 결과를 계정·대화 ID·재조회 버전에 연결하여 이전 오류가 새 조회에 남지 않도록 한다. 상세 API의 404만 `notFound()`로 대화 전용 오류 페이지를 표시하며, 연결 실패 등은 재조회 버튼을 유지한다. 정상 대화 탭 이동·없는 대화의 로딩 후 404 화면을 실제 브라우저에서 확인했고 타입 검사·lint를 통과했다.
+
+통계의 기본값은 전체 대화다. 넓은 화면은 중앙 통계·오른쪽 sticky 조건, 좁은 화면은 조건을 위에 배치한다. 조건 변경 시 숫자·차트를 450ms로 전환하며 prefers-reduced-motion이면 애니메이션을 끈다. 투머치 토커는 메시지 수 최대, 단답맨은 텍스트 10개 이상 중 1~5자 비율이 50% 초과인 참여자의 최대 비율, 장문가는 텍스트 10개 이상 평균 글자 수 최대, 야행성은 메시지 10개 이상 00~06시 비율 최대, 질문왕은 텍스트 10개 이상 물음표 메시지 비율 최대다. 동률은 공동 표시, 조건 미달은 없음으로 표시한다.
+
+AI 탭과 경로는 유지하지만 실제 대화에는 준비 중 안내만 제공한다. 가짜 결과·모의 실행·예시 일정 저장은 노출하지 않는다. 저장소 인터페이스·Supabase 어댑터는 백엔드에서 분리해 향후 S3 전환 경계를 유지한다.
+
+양쪽 타입·lint·빌드와 백엔드 20개 테스트, 실제 DB 롤백 검증을 수행했다. 브라우저의 로그인 계정에서 실제 빈 목록 API·업로드 입력을 확인했으며 hydration 오류 수정 후 issues 표시가 없음을 확인했다. Chrome 확장 파일 URL 접근 비활성으로 파일 선택 자동화·실제 사용자 파일 저장·원문/통계 populated 화면의 브라우저 검증은 미실행이다. 컨테이너 검증도 미실행이다.
+
+## 공식 문서 우선 조회
+
+- [Next.js 공식 문서](https://nextjs.org/docs): App Router, Server/Client Components, 라우팅, 데이터 처리, 설정·배포를 확인한다.
+- 프론트 기술을 조사할 때 위 공식 문서에서 해당 주제와 설치된 Next.js 버전에 맞는 내용을 먼저 읽는다. 현재 프로젝트는 App Router를 사용하므로 Pages Router 예제를 그대로 적용하지 않는다.
+- 공식 문서가 부족하면 Context7로 해당 기술의 공식 문서 내용을 보완하고, 이후 공식 저장소의 이슈·릴리스를 확인한다. React·Tailwind CSS·shadcn/ui 자체 기능은 각 기술의 공식 문서를 확인한다.
+
 ## 범위와 기술
 
 Next.js App Router·React·TypeScript 프로젝트로 구성하고 Tailwind CSS와 shadcn/ui를 사용한다. 소스는 `apps/frontend`에 있으며 M1 개발 환경을 구성했다. 실제 package.json과 잠금 파일을 기준으로 기록한다.
@@ -11,6 +43,7 @@ Next.js App Router·React·TypeScript 프로젝트로 구성하고 Tailwind CSS�
 | `clsx` | 런타임 | 설치됨 | `^2.1.1` |
 | `lucide-react` | 런타임 | 설치됨 | `^1.49.0` |
 | `next` | 런타임 | 설치됨 | `16.3.8` |
+| `@supabase/supabase-js` | 런타임·OAuth PKCE·브라우저 세션 | 설치됨 | `2.117.2` |
 | `@fontsource/noto-sans-kr` | 런타임 | 설치됨 | `^5.3.0` |
 | `react` | 런타임 | 설치됨 | `^19.3.0` |
 | `react-dom` | 런타임 | 설치됨 | `^19.3.0` |
@@ -26,7 +59,7 @@ Next.js App Router·React·TypeScript 프로젝트로 구성하고 Tailwind CSS�
 | `typescript` | 개발·검증 | 설치됨 | `^5.9.3` |
 | `typescript-eslint` | 개발·검증 | 설치됨 | `^8.71.0` |
 
-실제 해석 버전은 루트 `pnpm-lock.yaml`을 기준으로 한다. Supabase 클라이언트는 M2에서 도입하며 아직 미설치다.
+실제 해석 버전은 루트 `pnpm-lock.yaml`을 기준으로 한다. Supabase SDK는 2.117.2로 고정 설치했다.
 
 shadcn/ui는 패키지 자체를 설치하는 방식 대신 `components.json`과 소스 소유 방식으로 도입했다. 공개 Button 구성을 프로젝트에 맞춰 수동 반영했다. 라우팅은 Next.js App Router·next/link를 사용한다. 서버 상태 라이브러리·프론트 자동 테스트 프레임워크는 미선정이다.
 
@@ -102,3 +135,19 @@ Figma 화면에는 브랜드 토큰 적용을 완료했다. 앱 연결은 fronte
 2026-10-01 사용자 요청으로 Vite 런타임과 전용 패키지를 Next.js 16.3.8 App Router·Tailwind PostCSS로 대체했다. 실제 경로, 공유 데모 Context Provider, 루트 layout·Suspense, /api rewrites, standalone 빌드, Next.js용 타입 생성·출력 캐시·Docker bind mount를 구성했다. Noto Sans KR 400·500·700은 패키지로 자체 제공한다. 기존 main.tsx·index.html·비활성 vite.config.ts는 이전 진입점 기록으로 남겼으며 Next.js가 사용하지 않는다.
 
 이번 작업에서 새로 추가한 src/pages 화면 초안은 Next.js Pages Router 예약 이름과 충돌하여 src/views로 정리했다. 기존 사용자 소스 이동은 없다. 디자인 인계는 [design.md](design.md), 화면·검증·미연결 범위는 [screens.md](screens.md)를 따른다. 앱 테마 연결 완료 상태가 최신 기준이다.
+
+## ESLint 기준 경로 수정 · 2026-10-03
+
+프론트·백엔드 ESLint 설정의 동시 로드 시 TSConfig 기준 경로 자동 추론 충돌을 막도록 각 앱 parserOptions.tsconfigRootDir에 import.meta.dirname을 명시했다. 두 앱 lint와 동일 프로세스 설정 로드·파싱 검증을 통과했다.
+
+## OAuth 로그인 연결 · 2026-10-03
+
+사용자 요청으로 프론트 하네스·공식 브랜드 가이드를 기준으로 Google·GitHub·Kakao 진입점을 구현했다. `src/features/auth`에 브라우저 PKCE 클라이언트·Auth Context·로그인/콜백·계정 표시를 분리하고 기존 LoginPage export 경로를 유지했다. 공통 API 경계에서 Bearer 전달·응답 검증·401 세션 정리·오류 안내를 담당한다. Context Provider 패턴으로 로그인 상태를 공유한다.
+
+SDK는 브라우저에서만 생성하며 flowType=pkce, persistSession·autoRefreshToken 활성화, detectSessionInUrl 비활성화다. 콜백은 명시적으로 code와 SDK의 sb_flow_id를 교환한다. Strict Mode 중복 교환을 막고 주소창에서 인가 코드·오류 값을 제거한다. SDK 세션은 브라우저 저장소에 유지하며 서버 쿠키·SSR 인증·대화 접근 제한은 추가하지 않았다. 서비스 권한은 NestJS·RLS가 검증한다.
+
+공식 자산은 `public/auth`에 원본 버튼·로고로 추가했다. [리소스 출처](../../apps/frontend/public/auth/README.md)를 참조한다. Google은 공식 PNG의 영문 문구를 그대로 사용하고 접근성 이름은 한국어다. Kakao는 공식 한국어 완성형 SVG, GitHub는 공식 흰색 Invertocat과 한국어 레이블이다.
+
+Next 설정은 루트 .env의 SUPABASE_URL·SUPABASE_PUBLISHABLE_KEY를 명시된 NEXT_PUBLIC_ 값으로 제공한다. 별도 NEXT_PUBLIC_ 환경변수가 있으면 우선하며 공개 publishable 키만 번들에 포함한다. `.env`·제공자 Secret·토큰을 저장소에 기록하지 않는다. 환경변수 변경은 dev 재시작 또는 재빌드가 필요하다.
+
+사용자가 직접 검증하기로 요청했으므로 이번 변경의 로그인·UI·API 테스트, 타입 검사·lint·빌드·컨테이너 실행은 모두 미실행이다. 이전 검증 기록을 이번 변경에 대한 통과로 해석하지 않는다. 상세 수동 확인 절차는 [screens.md](screens.md#oauth-로그인-연결--2026-10-03)를 따른다.
