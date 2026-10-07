@@ -8,7 +8,10 @@
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "node --test tests/*.test.cjs"
+    "test": "node --test tests/*.test.cjs",
+    "check:jev": "node scripts/check-jev.cjs",
+    "check:ai-flow": "node scripts/check-ai-flow.cjs",
+    "check:analysis-pipeline": "node scripts/check-analysis-pipeline.cjs"
   },
   "dependencies": {
     "@nestjs/common": "12.1.1",
@@ -16,6 +19,7 @@
     "@nestjs/platform-express": "12.1.1",
     "@nestjs/swagger": "12.0.2",
     "@supabase/supabase-js": "2.117.2",
+    "@typesafe-ai/sdk": "0.6.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "reflect-metadata": "^0.2.2",

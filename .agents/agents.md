@@ -42,12 +42,12 @@
 
 | 항목 | 상태 |
 | --- | --- |
-| 기준일 | 2026-10-03 |
-| 현재 단계 | M1 완료; M2 카카오톡 TXT·비공개 원본 Storage·대화 DB/RLS·원문·통계 구현. 사용자 실제 파일 전체 검증과 Google·GitHub 재확인, AI·클라우드 미연결 |
-| 현재 작업 | codex/m2/oauth-login에 대화 저장·통계·프로필 변경을 작업 단위로 로컬 커밋 저장. 사용자 화면 동작 확인 보고; 원격 푸시 미실행 |
-| 다음 작업 | 사용자 카카오톡 TXT 업로드 전체 확인; Google·GitHub 로그인 재확인; AI 연결 |
-| 차단 사항 | Chrome 확장 파일 URL 접근 비활성으로 브라우저 파일 선택 자동화 불가. 자동 승인 검토가 지속적 테스트 Auth 계정 생성·원격 이력 버전 수정 거절; 계정 미생성, 로컬 신규 SQL 이름만 원격에 맞춤. Google·GitHub 재확인 및 실제 AI 모델·서버 선정 보류 |
-| 최근 검증 | 양쪽 타입·lint·빌드, 백엔드 20개 테스트 통과. 실제 DB 통계·RLS·연쇄 삭제 롤백 검증 및 인덱스 advisor 보완 완료. 실제 로그인 계정의 목록 조회·업로드 화면 확인. Storage API를 포함한 실제 파일 저장 전체 검증·컨테이너 미실행 |
+| 기준일 | 2026-10-07 |
+| 현재 단계 | M1 완료; M2 대화 DB/RLS·원문·통계 구현. M3 모순·일정 분석 API·실제 JEV/Qwen·DB·화면 연결 구현. 실제 원본 파일 전체 검증·Google/GitHub 재확인·정확도 평가·배포 남음 |
+| 현재 작업 | 사용자 보고 ANALYSIS_TOO_LARGE 수정: 200구간 제한 제거·JEV 선행 생략·장기 작업 2시간·소유자 조회 토큰 갱신·원인별 오류 안내. 16,120개 합성 대화 회귀 검증. 사용자 요청으로 M3 변경을 작업 단위 커밋하고 브랜치별 PR 게시 |
+| 다음 작업 | 분할 간 장거리 모순·누락률 평가·운영 생략 임계값 보정, 작업 큐 도입, 로컬/원격 마이그레이션 버전 매핑 정리. 실제 파일·Google/GitHub 재확인. RunPod·관점별 의견 제외 |
+| 차단 사항 | Chrome 확장 파일 URL 접근 비활성으로 브라우저 파일 선택 자동화 불가. 이전 자동 승인 검토가 지속적 테스트 Auth 계정 생성·원격 이력 버전 수정 거절; 계정 미생성, 로컬 신규 SQL 이름만 원격에 맞춤. Google·GitHub 재확인 남음. 실제 JEV 키/API 검증 완료 |
+| 최근 검증 | 백엔드 40개 테스트·양쪽 타입/lint·빌드 통과. 실제 학교 2,048토큰 확인·화면 JEV/Qwen 두 종류 완료·DB 저장·일정 확정/수정·새로고침 복원·터널 단절 실패 검증. DB RLS/RPC 원자성·연쇄 삭제 검증. Docker 미실행 |
 
 ## 마일스톤
 
@@ -56,9 +56,9 @@
 | M0 문서·하네스 | README·선택적 지침 작성, 링크·내용·읽기 규칙 검증 | 완료 |
 | M1 개발 기반 | 프론트·백엔드 초기화, 로컬 실행, Swagger 확인 | 완료 |
 | M2 사용자·대화 | 로그인, 개인 보관, 업로드·파싱·통계 검증 | 카카오 로그인 확인·개인 저장·카카오톡 파서·원문·통계 구현 및 자동/DB 검증. 실제 사용자 파일과 Google·GitHub 확인 남음 |
-| M3 분석 흐름 | 모의 AI, 작업 상태, 결과·일정 확인 검증 | 더미 결과 제거·준비 중 표시; 서버 작업·AI 미연결 |
+| M3 분석 흐름 | 작업 상태, 결과·일정 확인 검증 | 실제 모순/일정 분석 API·DB·화면 연결. 중단 작업 복구·오류·근거 검증 구현. 다중 worker·장거리 모순 평가는 남음 |
 | M4 초기 배포 | Actions·ECR·EC2 배포, 상태 확인·복구 검증 | 미착수 |
-| M5 실제 AI 연결 | 모델 선정, 서버 연결·실패 처리 검증 | 보류 |
+| M5 실제 AI 연결 | 모델 선정, 서버 연결·실패 처리 검증 | 학교 Qwen HTTP Adapter·JEV 사전 판단을 실제 서비스에 연결·응답 검증. 정확도·누락률 평가는 남음 |
 
 ## 결정과 보류
 
@@ -66,9 +66,9 @@
 | --- | --- |
 | 웹 | Next.js App Router·React·TypeScript·Tailwind CSS·shadcn/ui, NestJS·Swagger |
 | 사용자·DB | Supabase Auth·PostgreSQL·비공개 Storage, 개인별 보관 |
-| AI | HTTP, 모의 AI 우선, NestJS가 결과 검증·저장 |
+| AI | 학교 Qwen3-32B-AWQ HTTP 응답 확인·JEV 선택적 사전 판단 SDK; NestJS 결과 검증·저장은 후속 구현 |
 | 배포 | EC2 한 대·두 컨테이너, ECR, GitHub Actions, Compose 단순 교체 |
-| 보류 | 실제 모델·GPU 제공자·JEV 적용, SQS, Blue-Green, ASG·Load Balancer, 외부 캘린더 |
+| 보류 | JEV 후보 선별·전체 대화 처리, RunPod·관점별 의견, SQS, Blue-Green, ASG·Load Balancer, 외부 캘린더 |
 
 ## 짧은 작업 기록
 
@@ -145,3 +145,17 @@ Figma·Realtime Colors·디자인 토큰 작업을 frontend/design.md에 통합�
 사용자 명시 요청으로 테스트와 타입·lint·빌드·브라우저·컨테이너 실행을 하지 않았다. [화면 및 수동 확인](frontend/screens.md#oauth-로그인-연결--2026-10-03), [공식 리소스](../apps/frontend/public/auth/README.md), [공개 설정](infra/guide.md#프론트-oauth-공개-설정--2026-10-03)을 참조한다. 로그인 상태는 Context Provider로 공유하고 SDK·API 경계를 화면과 분리했다. 사용자 요청으로 변경 사항을 작업 단위 커밋으로 저장하며 원격 푸시는 하지 않는다.
 
 카카오 로그인은 사용자 성공 보고 및 기존 원격 Auth 로그의 PKCE 200을 확인했다. Google은 invalid_client(Client Secret 불일치), GitHub는 이메일 API 403(Resource not accessible by integration)을 확인했다. 에이전트 로그인 테스트·원격 설정 변경은 하지 않았다. Google·GitHub 수정 후 성공은 미확인이므로 OAuth 전체 완료로 표시하지 않는다. 상세 조치는 [인프라 기록](infra/guide.md#oauth-수동-확인과-오류-조사--2026-10-03)에 저장했다.
+
+## 브랜치별 PR 게시 · 2026-10-07
+
+사용자 요청으로 인증 브랜치를 실제 구현 커밋 `8300d9e`까지 맞추고 M3 미커밋 변경을 DB·백엔드·프론트·문서 단위로 저장했다. 기존 환경 설정 PR을 보완하고 후속 브랜치 PR은 기반 브랜치로 순차 비교한다.
+
+| 순서 | 브랜치 | 비교 대상 |
+| --- | --- | --- |
+| 1 | codex/m0/environment-setup | main |
+| 2 | codex/m2/frontend-screens | codex/m0/environment-setup |
+| 3 | codex/m2/auth-foundation | codex/m2/frontend-screens |
+| 4 | codex/m2/oauth-login | codex/m2/auth-foundation |
+| 5 | codex/m3/jev-routing | codex/m2/oauth-login |
+
+양쪽 앱 타입·lint·프로덕션 빌드, 백엔드 테스트 51개와 커밋 공백 오류 검사 통과. 루트 Turbo의 패키지 관리자 경로 오류는 각 앱 명령 직접 실행으로 우회했다. 원격 AI·DB·브라우저·Docker 검증은 이번 게시에서 재실행하지 않았다. 기존 정확도 평가·작업 큐·마이그레이션 이력 매핑·실제 파일·Google/GitHub 재확인은 남아 있다. PR 병합은 수행하지 않는다.

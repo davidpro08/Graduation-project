@@ -1,5 +1,29 @@
 # 인프라 지침
 
+## 실제 분석 실행 설정 · 2026-10-03
+
+긴 대화는 `ANALYSIS_TIMEOUT_MS` 기본 7,200,000ms(2시간), 1분~4시간 범위로 설정한다. Compose 환경변수 전달을 추가했다. 200구간 제한은 제거했다.
+
+Compose에 `SCHOOL_AI_BASE_URL`, `SCHOOL_AI_MODEL`, `SCHOOL_AI_API_KEY`, `JEV_SKIP_THRESHOLD`를 전달한다. [학교 터널·Docker와 로컬 주소 차이](../AI/analysis-flow.md#실행-설정)를 따른다. Docker 엔진이 꺼져 있어 컨테이너 검증은 미실행이며 로컬 프론트·Nest·SSH 터널에서 검증한다.
+
+## JEV 설정과 학교 서버 연결 확인 · 2026-10-03
+
+사용자가 학교 서버를 다시 기동한 뒤 끊어진 로컬 터널을 재연결했다. 실제 API는 8000번에서 실행 중이며 VRAM 23,103/24,564MiB 사용을 확인했다. `check:ai-flow`로 실제 JEV와 학교 Qwen의 연속 호출을 확인했다. 서버 설치·모델 설정은 수정하지 않았다. JEV의 과금 설정·키는 사용자가 준비했고 합성 대화로만 호출했다.
+
+Compose backend에 `JEV_ENABLED=false`, `TYPESAFE_API_KEY`, `JEV_MODEL=jev-latest`, `JEV_TIMEOUT_MS=5000`를 전달한다. 실제 키는 Git 제외 `.env` 또는 프로세스 환경변수로 관리하며 프론트에는 전달하지 않는다. SDK 추가 후 Docker 사용 시 이미지를 재빌드해야 한다. 이번 변경에서 컨테이너 재빌드·실행은 하지 않았다.
+
+학교 서버 설정은 사용자가 수행했다. 이전 SSH 주소는 연결 거절이었고 사용자가 제공한 새 주소 `root@203.252.159.19:57398`에서 SSH와 vLLM 내부 8000번 API를 확인했다. RTX 4090 VRAM 24,564MiB 중 21,953MiB 사용, `/v1/models`의 실제 모델 ID는 `Qwen/Qwen3-32B-AWQ`였다. 모델 설치·기동 설정·버전은 변경하지 않았다.
+
+서버 내부 합성 한국어 요청에 `오늘 금요일 오후 3시에 회의가 있습니다.` 응답, 로컬 백엔드 Node 환경의 SSH 터널 호출에 `학교 AI 서버 연결 성공` 응답을 확인했다. 두 호출 모두 약 0.43초, finish_reason=stop이었다. non-thinking·max_tokens=128로 확인했으며 전체 분석 성능 평가와 NestJS LLM 어댑터 연결은 아니다.
+
+로컬 터널은 숨김 SSH 프로세스로 열었다. PID는 Git 제외 `.tmp/school-ai-tunnel.pid`, 오류 로그는 `.tmp/school-ai-tunnel.err.log`에 있다. 현재 API 기본 주소는 `http://127.0.0.1:18080/v1`이다. 인스턴스·PC 재시작 시 터널 재연결이 필요하며 포트가 바뀌면 접속 명령도 갱신한다. 수동 재연결 명령:
+
+```powershell
+ssh -i "$env:USERPROFILE\.ssh\jev-test.pem" -p 57398 -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -L 127.0.0.1:18080:127.0.0.1:8000 root@203.252.159.19
+```
+
+이미 터널이 열려 있으면 중복 실행하지 않는다. 중단 시 PID 파일에 기록된 프로세스가 본 작업의 SSH 프로세스인지 확인한 뒤 해당 프로세스만 종료한다. RunPod 연결은 미실행이다.
+
 ## 공식 문서 우선 조회
 
 - [AWS 공식 문서](https://docs.aws.amazon.com/): 관련 서비스의 사용자 가이드·API 참조를 찾아 EC2·ECR·IAM·Systems Manager·SQS 설정과 제한을 확인한다.

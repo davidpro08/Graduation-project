@@ -1,5 +1,15 @@
 # 백엔드 지침
 
+## 최신 분석 연결 · 2026-10-03
+
+`AnalysesModule`의 공개 API·작업 실행·결과 저장과 `QwenHttp`를 구현했다. [실제 계약·제한·검증](../AI/analysis-flow.md)을 우선한다. 분석 오케스트레이션, 외부 모델 Adapter, RLS 저장소 Adapter를 분리하고 인터페이스·DI로 연결했다. AuthGuard·사용자 토큰 접근을 재사용한다. 기존 대화 파일은 이동하지 않았다.
+
+## JEV 내부 연결 · 2026-10-03
+
+`ai` 기능 폴더에 설정·사용 정책·외부 호출 경계를 분리했다. `AiModule`을 AppModule에 연결하고 `JevService`를 내보낸다. `JevClient` 인터페이스와 `TypeSafeJev` 어댑터를 의존성 주입으로 연결했다. 기존 파일 이동·삭제는 없으며 별도 공개 API·모순/일정 로직·LLM 호출은 추가하지 않았다. SDK는 별도 TypeSafe API를 호출하며 학교 GPU 서버를 사용하는 라이브러리가 아니다.
+
+타입·lint·빌드·전체 29개 테스트 통과. 9개 JEV 테스트는 실제 SDK의 fetch 전송 경계만 대체하여 사용 분기·인증·모델·Noul/Choice/Score 응답 검증·시간 초과·오류 우회를 확인한다. 이후 실제 `check:jev`는 jev-1.13.0·일정 확률 0.98, `check:jev --skip`은 request-disabled를 반환했다. `check:ai-flow`는 NestJS JEV 사전 판단→직접 Qwen HTTP 상세 분석과 낮은 확률 시 생략을 합성 대화 두 건으로 실제 확인했다. 운영 LLM 서비스 어댑터·분석 API·DB 저장은 아직 없다. [계약](../AI/api.md#jev-사전-판단-실제-계약--2026-10-03)과 [연속 진단](../AI/api.md#jev와-학교-qwen-연속-진단--2026-10-03)을 따른다.
+
 ## 대화 업로드·통계 구현 · 2026-10-03
 
 `conversations` 기능 모듈을 추가했다. 컨트롤러는 multipart·DTO·날짜 검증, 서비스는 파싱·원본/DB 저장·재시도·삭제 흐름, KakaoParser는 파일 해석, ConversationRepository·OriginalFiles 인터페이스와 Supabase 구현은 외부 접근을 담당한다. 어댑터·의존성 주입으로 DB/Storage를 화면·HTTP·파서에서 분리했다. 별도 큐·워커·AI 호출은 추가하지 않았다.
@@ -29,6 +39,7 @@ NestJS·TypeScript·Swagger를 사용하는 서버로 구성한다. 소스는 `a
 | `reflect-metadata` | 런타임 | 설치됨 | `^0.2.2` |
 | `rxjs` | 런타임 | 설치됨 | `^7.8.2` |
 | `@supabase/supabase-js` | 런타임·Auth 검증·사용자 RLS 접근 | 설치됨 | `2.117.2` |
+| `@typesafe-ai/sdk` | 런타임·JEV 구조화 판단 API | 설치됨 | `0.6.0` |
 | `@eslint/js` | 개발·검증 | 설치됨 | `^10.0.1` |
 | `@nestjs/cli` | 개발·검증 | 설치됨 | `12.0.8` |
 | `@nestjs/testing` | 개발·검증 | 설치됨 | `12.1.1` |

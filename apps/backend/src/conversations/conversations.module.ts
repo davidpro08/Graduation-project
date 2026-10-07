@@ -6,6 +6,6 @@ import { ConversationsService } from './conversations.service';
 import { KakaoParser } from './kakao.parser';
 import { SupabaseChatRepo } from './supabase-chat.repo';
 import { SupabaseOriginals } from './supabase-originals';
-@Module({imports:[AuthModule],controllers:[ConversationsController],providers:[ConversationsService,KakaoParser,
+@Module({imports:[AuthModule],exports:[ConversationsService],controllers:[ConversationsController],providers:[ConversationsService,KakaoParser,
   {provide:CONVERSATIONS,useClass:SupabaseChatRepo},{provide:ORIGINAL_FILES,useClass:SupabaseOriginals}]})
 export class ConversationsModule {}

@@ -59,7 +59,7 @@ export function UploadPage({onAdd}:{onAdd:(title:string,file:File,uploadId:strin
     <Card title="3. 대화 정보"><label>대화 제목<Input value={title} onChange={event=>setTitle(event.target.value)} required maxLength={80} placeholder="대화 제목" disabled={busy}/></label>
       {error && <Notice tone="error">{error}</Notice>}{busy && <Notice>원본 파일을 업로드하고 메시지를 저장하고 있습니다. 잠시 기다려 주세요.</Notice>}
       <div className="actions"><Button type="submit" disabled={!file || !title.trim() || busy || reading}>{busy?'파싱·저장 중…':'대화 저장'}</Button><Button asChild variant="outline"><Link href="/conversations">내 대화로 돌아가기</Link></Button></div>
-      <p className="small muted">원본은 비공개로 보관합니다. 모순 후보·관점별 의견·일정 분석은 AI 연결 후 제공됩니다.</p></Card></form></>;
+      <p className="small muted">원본은 비공개로 보관합니다. 저장 후 모순 후보와 일정을 분석할 수 있습니다. 관점별 의견은 준비 중입니다.</p></Card></form></>;
 }
 export function HealthPage() {
   const [connection,setConnection]=useState<'loading'|'connected'|'failed'>('loading');const [attempt,setAttempt]=useState(0);

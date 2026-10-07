@@ -26,11 +26,11 @@ export function App() {
     {route.page === 'upload' && <UploadPage onAdd={addConversation} />}
     {route.page === 'health' && <HealthPage />}
     {route.page === 'conversation' && (loading?<div role="status" className="stack"><p>불러오는 중입니다</p><Skeleton className="h-64 w-full"/></div>:error?<Card><Notice tone="error">{error}</Notice><Button variant="outline" onClick={reload}>다시 조회</Button><Button asChild><Link href="/conversations">내 대화로 돌아가기</Link></Button></Card>:conversation ? <div key={`${conversation.id}-${route.tab}`} className="stack">
-      {route.tab === 'messages' && <MessagesPage conversation={conversation} messageId={route.messageId} />}
+      {route.tab === 'messages' && <MessagesPage key={route.messageId??'all'} conversation={conversation} messageId={route.messageId} />}
       {route.tab === 'statistics' && <StatisticsPage conversation={conversation} />}
-      {route.tab === 'contradiction' && <ContradictionPage />}
+      {route.tab === 'contradiction' && <ContradictionPage conversation={conversation} />}
       {route.tab === 'opinions' && <OpinionsPage />}
-      {route.tab === 'schedules' && <SchedulesPage />}
+      {route.tab === 'schedules' && <SchedulesPage conversation={conversation} />}
     </div> : null)}
   </Shell>;
 }
