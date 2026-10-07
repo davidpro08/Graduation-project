@@ -1,12 +1,14 @@
 # 서비스 API 설계 초안
 
-상태 확인과 개발 문서 경로만 구현했다. 나머지는 **미구현 설계 초안**이다. 외부 경로는 `/api`를 기준으로 한다. Supabase Auth 로그인 자체는 NestJS 로그인 API로 중복 구현하지 않는다.
+상태 확인·개발 문서·내 정보 조회와 수정 API를 구현했다. 대화·분석·일정 API는 **미구현 설계 초안**이다. 외부 경로는 `/api`를 기준으로 한다. Supabase Auth 로그인 자체는 NestJS 로그인 API로 중복 구현하지 않는다.
 
 | 메서드 | 경로 | 인증 | 목적 | 구현 상태 |
 | --- | --- | --- | --- | --- |
 | GET | `/api/health` | 불필요 | 백엔드 프로세스 상태 확인; `status: ok`, `service: backend` | 구현 |
 | GET | `/api/docs` | 불필요 | 개발 Swagger UI | 구현·로컬 개발 전용 |
 | GET | `/api/docs-json` | 불필요 | 개발 OpenAPI JSON | 구현·로컬 개발 전용 |
+| GET | `/api/users/me` | Bearer | 검증된 사용자 본인의 Auth 정보와 서비스 프로필 | 구현 |
+| PATCH | `/api/users/me` | Bearer | 본인의 닉네임 수정 | 구현 |
 | POST | `/api/conversations` | 필요 | multipart 파일 업로드·파싱, 대화 ID 반환 | 미구현 |
 | GET | `/api/conversations` | 필요 | 본인의 대화 목록 조회 | 미구현 |
 | GET | `/api/conversations/:conversationId` | 필요 | 대화·구조화 메시지 조회 | 미구현 |
@@ -33,3 +35,21 @@
 ## 구현 시 확정할 항목
 
 페이지네이션·응답 DTO·오류 코드 목록·업로드 제한·타임아웃·폴링 정책·일정 시간대와 날짜 검증을 구현 전에 명시한다. 이 목록은 완료 API가 아닌 후속 설계 작업이다. 계약 변경 시 프론트·데이터·AI의 영향 범위를 확인한다.
+
+## 사용자 API 계약 · 2026-10-01
+
+GET·PATCH 응답은 `id`, `nickname`, `email`, `providers`, `createdAt`, `updatedAt`이다. ID는 UUID, 시각은 시간대가 포함된 문자열이다. nickname·email은 NULL을 허용하며 providers는 Auth identities의 제공자를 중복 제거·정렬한 배열이다. 이메일·identity는 `auth.getUser(token)`으로 검증된 정보만 사용하고 토큰은 반환하지 않는다.
+
+PATCH 요청은 `{ "nickname": "문재현" }`만 허용한다. 앞뒤 공백을 제거한 뒤 Unicode 문자 1~30자를 허용한다. 필드 누락·빈 문자열·NULL·비문자열·길이 초과·추가 필드는 400이다. 임의 사용자 ID를 받는 API와 목록·삭제 API는 없다.
+
+| 상태 | 조건 |
+| --- | --- |
+| 200 | 본인 조회·수정 성공 |
+| 400 | PATCH 입력 검증 실패 |
+| 401 | Bearer 누락·형식 오류·위조·만료·익명 Auth 사용자 |
+| 404 | 검증된 사용자의 서비스 프로필 누락 |
+| 503 | Auth·DB 연결 실패, 타임아웃 또는 외부 서비스 오류 |
+
+외부 요청 제한은 요청당 10초다. Auth SDK 내부 재시도가 있어 전체 처리 시간이 항상 10초 이하인 것은 아니다. 오류에는 토큰·개인 본문·원격 오류 상세를 노출하지 않는다. GET은 프로필을 생성하지 않으며 프로필 생성은 DB 가입 트리거가 담당한다.
+
+백엔드는 HTTP 요청에서 Bearer 액세스 토큰만 사용하며 자체 세션 쿠키나 JWT를 발급하지 않는다. 2026-10-03 프론트 OAuth 시작·콜백·SDK 세션 갱신·로그아웃과 사용자 API 호출 코드를 연결했다. NestJS 로그인 API는 추가하지 않았다. 사용자가 제공자 앱 설정을 완료했다고 알렸으며 실제 로그인·API 연결 테스트는 사용자 수행으로 남겼다.

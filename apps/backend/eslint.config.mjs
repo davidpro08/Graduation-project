@@ -6,6 +6,6 @@ export default [
   { ignores: ['dist/**', 'node_modules/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
-  { languageOptions: { globals: globals.node } },
+  { languageOptions: { globals: globals.node, parserOptions: { tsconfigRootDir: import.meta.dirname } } },
   { files: ['tests/**/*.cjs'], rules: { '@typescript-eslint/no-require-imports': 'off' } },
 ];
