@@ -1,0 +1,99 @@
+{
+  "date": "2026-10-01",
+  "fileKey": "5IToNjI4vrk4ZPiptrvyfF",
+  "pageId": "0:1",
+  "status": "applied",
+  "validation": {
+    "screens": [
+      {
+        "id": "7:2",
+        "name": "01 · 로그인",
+        "width": 1440,
+        "height": 956,
+        "x": 100,
+        "y": 720
+      },
+      {
+        "id": "7:29",
+        "name": "02 · 내 대화",
+        "width": 1440,
+        "height": 1154,
+        "x": 1660,
+        "y": 720
+      },
+      {
+        "id": "7:82",
+        "name": "03 · 대화 업로드",
+        "width": 1440,
+        "height": 952,
+        "x": 100,
+        "y": 1994
+      },
+      {
+        "id": "7:127",
+        "name": "04 · 대화 원문",
+        "width": 1440,
+        "height": 1308,
+        "x": 1660,
+        "y": 1994
+      },
+      {
+        "id": "7:187",
+        "name": "05 · 통계 리포트",
+        "width": 1440,
+        "height": 1312,
+        "x": 100,
+        "y": 3422
+      },
+      {
+        "id": "7:250",
+        "name": "06 · 모순 후보·근거",
+        "width": 1440,
+        "height": 1282,
+        "x": 1660,
+        "y": 3422
+      },
+      {
+        "id": "7:311",
+        "name": "07 · 관점별 의견",
+        "width": 1440,
+        "height": 1260,
+        "x": 100,
+        "y": 4854
+      },
+      {
+        "id": "7:372",
+        "name": "08 · 일정 후보·확정 일정",
+        "width": 1440,
+        "height": 1642,
+        "x": 1660,
+        "y": 4854
+      },
+      {
+        "id": "9:115",
+        "name": "모바일 · 모순 후보",
+        "width": 390,
+        "height": 1016,
+        "x": 100,
+        "y": 6616
+      },
+      {
+        "id": "9:141",
+        "name": "모바일 · 일정 확인",
+        "width": 390,
+        "height": 1004,
+        "x": 580,
+        "y": 6616
+      }
+    ],
+    "oldTokenBindings": [],
+    "colorMismatches": [],
+    "buttonTextOverflow": [],
+    "fonts": [
+      "Noto Sans KR"
+    ],
+    "textCount": 289,
+    "instanceCount": 124,
+    "reactions": 76
+  }
+}

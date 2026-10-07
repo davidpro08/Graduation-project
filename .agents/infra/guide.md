@@ -7,7 +7,7 @@
 | 구성 | 초기 계획 | 상태 |
 | --- | --- | --- |
 | EC2 | 한 대에서 Compose 실행 | 미생성 |
-| 프론트 이미지 | Vite 정적 빌드 + Nginx; HTTPS·`/api` 프록시 | 미빌드 |
+| 프론트 이미지 | Next.js standalone Node 서버 + HTTPS 진입점; HTTPS·`/api` 프록시 | 미빌드 |
 | 백엔드 이미지 | NestJS 실행 | 미빌드 |
 | ECR | 프론트·백엔드 이미지 저장 | 미생성 |
 | GitHub Actions | 검사·테스트·빌드·게시·배포 | 미작성 |
@@ -19,10 +19,10 @@
 ## Docker·네트워크
 
 - 로컬은 `Dockerfile.dev`·`compose.yaml`로 Node 24 기반 Linux 개발 컨테이너 두 개를 실행한다. `docker compose up --build`, 종료는 `docker compose down`이다. 소스만 bind mount하여 호스트 node_modules가 Linux 의존성을 덮어쓰지 않게 한다.
-- 프론트 5173·백엔드 3000을 호스트 loopback에 공개한다. Compose의 Vite 프록시는 `http://backend:3000`, 호스트 실행은 `http://127.0.0.1:3000`을 사용한다. NestJS healthcheck 통과 후 Vite를 시작한다. Docker의 Nest CLI watch에만 `--no-shell`을 사용하고, 개발 이미지에 프로세스 탐색용 `procps`를 설치해 재시작 시 기존 서버가 남지 않게 한다.
-- Vite polling과 TypeScript watch polling을 사용한다. 의존성·Dockerfile·백엔드 설정 변경은 이미지를 다시 빌드한다. `.env.example`의 포트·polling 설정은 복사 없이 기본값으로도 실행된다.
+- 프론트 5173·백엔드 3000을 호스트 loopback에 공개한다. Compose의 Next.js rewrites는 `http://backend:3000`, 호스트 실행은 `http://127.0.0.1:3000`을 사용한다. NestJS healthcheck 통과 후 Next.js를 시작한다. Docker의 Nest CLI watch에만 `--no-shell`을 사용하고, 개발 이미지에 프로세스 탐색용 `procps`를 설치해 재시작 시 기존 서버가 남지 않게 한다.
+- Next.js webpack watch polling과 TypeScript watch polling을 사용한다. 의존성·Dockerfile·백엔드 설정 변경은 이미지를 다시 빌드한다. `.env.example`의 포트·polling 설정은 복사 없이 기본값으로도 실행된다.
 - 호스트는 `pnpm install --frozen-lockfile` 후 `pnpm dev`로 두 앱을 Turborepo에서 실행한다. Docker와 호스트를 같은 포트로 동시에 실행하지 않는다. 로컬은 HTTP이고 Nginx·HTTPS는 운영 구성에 해당한다.
-- 운영은 두 컨테이너를 사용한다. 프론트 컨테이너가 Nginx와 React 빌드 결과를 제공하고 백엔드는 내부 Docker 네트워크로 연결한다.
+- 운영은 두 컨테이너를 사용한다. 프론트 컨테이너가 Next.js Node 서버로 화면과 자산을 제공하고 백엔드는 내부 Docker 네트워크로 연결한다.
 - 외부 서비스 트래픽은 HTTPS로 받는다. 인증서 발급·갱신은 호스트에서 관리하고 Nginx에 읽기 전용으로 마운트하는 구성을 기본으로 한다. 도메인·인증서 발급 방식은 배포 전 확정한다.
 - 백엔드 포트를 인터넷에 직접 노출하지 않는다. EC2 보안 그룹·운영 접근·AI 서버 접근은 필요한 범위로 제한한다.
 - Supabase와 AI 서버는 EC2의 두 컨테이너 밖에 있다. 실제 AI 원격 HTTP는 HTTPS 등 보호된 연결과 서버 간 인증을 사용한다.
@@ -69,3 +69,7 @@
 Turbo 2.11.5에서 대화형 PowerShell 실행 시 종료 코드 3221226505를 재현하여 2.9.14로 고정했다. npm 설치 흔적의 바이너리가 재선택되는 것을 막기 위해 루트 실행 스크립트는 `--skip-infer`를 사용하고 dev는 stream 출력을 사용한다. 설치는 pnpm과 루트 잠금 파일을 기준으로 한다.
 
 공백이 있는 Windows 경로에서 Nest CLI의 `--no-shell`이 실행 파일 경로를 잘못 인용하므로 호스트 dev는 기본 셸 실행을 사용한다. Docker에서는 Compose가 `nest start --watch --no-shell`을 직접 지정해 Linux 재시작 동작을 유지한다.
+
+## Next.js 마이그레이션 · 2026-10-01
+
+프론트 런타임을 Next.js 16.3.8로 전환했다. 개발은 webpack 모드로 WATCH_POLLING을 지원하며 프론트 5173·백엔드 3000을 유지한다. Compose는 src·design 토큰·Next/PostCSS 설정을 마운트한다. Next.js 최초 컴파일에 맞춰 healthcheck start_period를 60초로 설정했다. 빌드는 standalone이며 출력 추적 루트는 모노레포 루트다. 운영 이미지 구성은 M4 후속 작업이다. Docker 엔진 미실행으로 이번 컨테이너 재빌드·healthy 검증은 미실행, compose config 검증은 통과했다.

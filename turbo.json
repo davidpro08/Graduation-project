@@ -14,12 +14,33 @@
       ]
     },
     "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/**"],
-      "env": ["VITE_*"]
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "dist/**",
+        ".next/**",
+        "!.next/cache/**"
+      ],
+      "env": [
+        "NEXT_PUBLIC_*",
+        "API_PROXY_TARGET"
+      ]
     },
-    "typecheck": { "dependsOn": ["^typecheck"], "outputs": [] },
-    "lint": { "outputs": [] },
-    "test": { "dependsOn": ["build"], "outputs": [] }
+    "typecheck": {
+      "dependsOn": [
+        "^typecheck"
+      ],
+      "outputs": []
+    },
+    "lint": {
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": [
+        "build"
+      ],
+      "outputs": []
+    }
   }
 }
