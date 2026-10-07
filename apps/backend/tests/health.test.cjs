@@ -4,10 +4,12 @@ const { Test } = require('@nestjs/testing');
 const request = require('supertest');
 const { AppModule } = require('../dist/app.module');
 const { configureApp } = require('../dist/configure-app');
+const { SupabaseService } = require('../dist/supabase/supabase.service');
 
 let app;
 before(async () => {
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+  const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+    .overrideProvider(SupabaseService).useValue({}).compile();
   app = moduleRef.createNestApplication();
   configureApp(app);
   await app.init();
@@ -18,7 +20,8 @@ test('인증 없이 /api/health 상태를 조회하고 미구현 경로는 404�
   const response = await request(app.getHttpServer()).get('/api/health').expect(200);
   assert.deepEqual(response.body, { status: 'ok', service: 'backend' });
   await request(app.getHttpServer()).get('/health').expect(404);
-  await request(app.getHttpServer()).get('/api/conversations').expect(404);
+  await request(app.getHttpServer()).get('/api/not-implemented').expect(404);
+  await request(app.getHttpServer()).get('/api/conversations').expect(401);
 });
 
 test('Swagger UI와 OpenAPI가 실제 health 경로와 응답을 노출한다', async () => {
@@ -26,5 +29,5 @@ test('Swagger UI와 OpenAPI가 실제 health 경로와 응답을 노출한다', 
   const { body } = await request(app.getHttpServer()).get('/api/docs-json').expect(200);
   assert.ok(body.paths['/api/health'].get.responses['200']);
   assert.ok(body.components.schemas.HealthResponse);
-  assert.equal(body.paths['/api/conversations'], undefined);
+  assert.ok(body.paths['/api/conversations'].get.security);
 });

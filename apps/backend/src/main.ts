@@ -2,8 +2,12 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { configureApp } from './configure-app';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 async function bootstrap() {
+  const envPath = resolve(__dirname, '../../../.env');
+  if (existsSync(envPath)) process.loadEnvFile(envPath);
   const app = await NestFactory.create(AppModule);
   configureApp(app);
   app.enableShutdownHooks();

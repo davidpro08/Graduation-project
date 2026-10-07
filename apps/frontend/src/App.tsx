@@ -1,40 +1,36 @@
-import { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { getHealth } from '@/lib/api';
+'use client';
 
-type Connection = 'loading' | 'connected' | 'failed';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { useConversation, useConversationStore } from '@/features/conversations/provider';
+import { useAuth } from '@/features/auth/provider';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Notice } from '@/components/layout';
+import { Button } from '@/components/ui/button';
+import { Card, Empty, Shell } from '@/components/layout';
+import { useRoute } from '@/lib/use-route';
+import { ConversationList, HealthPage, LoginPage, UploadPage } from '@/views/workspace';
+import { ContradictionPage, MessagesPage, OpinionsPage, SchedulesPage } from '@/views/conversation';
+import { StatisticsPage } from '@/features/conversations/statistics';
 
 export function App() {
-  const [connection, setConnection] = useState<Connection>('loading');
-  const [attempt, setAttempt] = useState(0);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setConnection('loading');
-    getHealth(controller.signal)
-      .then(() => { if (!controller.signal.aborted) setConnection('connected'); })
-      .catch(() => { if (!controller.signal.aborted) setConnection('failed'); });
-    return () => controller.abort();
-  }, [attempt]);
-
-  const label = { loading: '백엔드 연결 확인 중', connected: '백엔드 연결 정상', failed: '백엔드 연결 실패' }[connection];
-
-  return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center gap-8 px-6 py-16">
-      <header className="space-y-4">
-        <p className="text-sm font-medium text-muted-foreground">그랬잖아 · 졸업프로젝트</p>
-        <h1 className="text-4xl font-bold tracking-tight">기억이 다를 때, 대화에서 확인하세요.</h1>
-        <p className="leading-7 text-muted-foreground">채팅 기록을 바탕으로 발언의 근거를 확인하고 갈등 해결을 돕는 서비스를 준비하고 있습니다.</p>
-      </header>
-      <section aria-labelledby="connection-title" className="space-y-4 rounded-xl border bg-card p-6">
-        <h2 id="connection-title" className="text-lg font-semibold">개발 환경 연결 상태</h2>
-        <p role="status" aria-live="polite">{label}</p>
-        <div className="flex flex-wrap gap-3">
-          <Button disabled={connection === 'loading'} onClick={() => setAttempt(value => value + 1)}>다시 확인</Button>
-          <Button asChild variant="outline"><a href="/api/docs" target="_blank" rel="noreferrer">API 문서 열기</a></Button>
-        </div>
-      </section>
-      <p className="text-sm text-muted-foreground">대화 업로드·분석·일정 관리는 다음 단계에서 추가합니다.</p>
-    </main>
-  );
+  const route = useRoute();
+  const { addConversation } = useConversationStore();
+  const auth=useAuth();
+  const {conversation,loading,error,notFound:missing,reload}=useConversation(route.page==='conversation'?route.conversationId:undefined);
+  if (route.page === 'login') return <LoginPage />;
+  if(route.page!=='health' && (!auth.ready || !auth.signedIn))return <Shell route={route}><Card>{!auth.ready?<Skeleton className="h-40 w-full"/>:<><Empty title="로그인이 필요합니다">로그인한 계정에 대화를 보관하고 다시 조회할 수 있습니다.</Empty><Button asChild><Link href="/login">로그인</Link></Button></>}</Card></Shell>;
+  if(route.page==='conversation' && missing)notFound();
+  return <Shell route={route} conversation={conversation}>
+    {route.page === 'conversations' && <ConversationList />}
+    {route.page === 'upload' && <UploadPage onAdd={addConversation} />}
+    {route.page === 'health' && <HealthPage />}
+    {route.page === 'conversation' && (loading?<div role="status" className="stack"><p>불러오는 중입니다</p><Skeleton className="h-64 w-full"/></div>:error?<Card><Notice tone="error">{error}</Notice><Button variant="outline" onClick={reload}>다시 조회</Button><Button asChild><Link href="/conversations">내 대화로 돌아가기</Link></Button></Card>:conversation ? <div key={`${conversation.id}-${route.tab}`} className="stack">
+      {route.tab === 'messages' && <MessagesPage conversation={conversation} messageId={route.messageId} />}
+      {route.tab === 'statistics' && <StatisticsPage conversation={conversation} />}
+      {route.tab === 'contradiction' && <ContradictionPage />}
+      {route.tab === 'opinions' && <OpinionsPage />}
+      {route.tab === 'schedules' && <SchedulesPage />}
+    </div> : null)}
+  </Shell>;
 }

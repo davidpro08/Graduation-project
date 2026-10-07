@@ -1,5 +1,19 @@
 # 백엔드 지침
 
+## 대화 업로드·통계 구현 · 2026-10-03
+
+`conversations` 기능 모듈을 추가했다. 컨트롤러는 multipart·DTO·날짜 검증, 서비스는 파싱·원본/DB 저장·재시도·삭제 흐름, KakaoParser는 파일 해석, ConversationRepository·OriginalFiles 인터페이스와 Supabase 구현은 외부 접근을 담당한다. 어댑터·의존성 주입으로 DB/Storage를 화면·HTTP·파서에서 분리했다. 별도 큐·워커·AI 호출은 추가하지 않았다.
+
+원본 파일은 Storage API로 처리하고 DB import는 단일 트랜잭션 RPC를 사용한다. 통계도 요청자 RLS를 유지한 SQL RPC에서 전체 데이터를 집계한다. 본문·파일명·외부 상세 오류를 로그로 남기지 않는다. 비정상 외부 예외는 503으로 변환하며 입력·인증·권한 오류는 해당 HTTP 상태를 유지한다. 업로드 실패·응답 유실·부분 삭제·중복 ID 처리는 [API 계약](api.md#대화-api-실제-계약--2026-10-03)을 따른다.
+
+파일 타입용 `@types/multer` 2.3.0을 개발 의존성으로 추가하고 tsconfig types에 등록했다. 기존 Nest FileInterceptor를 사용하며 별도 런타임 업로드 라이브러리는 추가하지 않았다. 백엔드 타입·lint·빌드·Node 테스트 20개를 통과했다. 새 10개 검증은 PC/모바일·인코딩·날짜/시간·400명·multipart·소유권·중복 요청·DB 실패·원본 삭제 실패를 포함한다. DB 통계/RLS/연쇄 삭제는 별도 실제 DB 롤백 SQL로 검증했다.
+
+## 공식 문서 우선 조회
+
+- [NestJS 공식 문서](https://docs.nestjs.com/): 모듈·DI, 컨트롤러·DTO, OpenAPI/Swagger, 테스트·설정을 확인한다.
+- 백엔드 기술을 조사할 때 위 공식 문서에서 해당 주제를 먼저 읽고 package.json·잠금 파일의 설치 버전과 호환되는지 확인한다.
+- 공식 문서가 부족하면 Context7로 공식 문서 내용을 보완하고, 이후 NestJS 공식 저장소의 이슈·릴리스를 확인한다. 다른 라이브러리 자체 기능은 해당 라이브러리의 공식 문서로 확인한다.
+
 ## 기술과 책임
 
 NestJS·TypeScript·Swagger를 사용하는 서버로 구성한다. 소스는 `apps/backend`에 있으며 상태 확인 API·Swagger와 개발 환경을 구현했다.
@@ -14,6 +28,7 @@ NestJS·TypeScript·Swagger를 사용하는 서버로 구성한다. 소스는 `a
 | `class-validator` | 런타임 | 설치됨 | `^0.15.1` |
 | `reflect-metadata` | 런타임 | 설치됨 | `^0.2.2` |
 | `rxjs` | 런타임 | 설치됨 | `^7.8.2` |
+| `@supabase/supabase-js` | 런타임·Auth 검증·사용자 RLS 접근 | 설치됨 | `2.117.2` |
 | `@eslint/js` | 개발·검증 | 설치됨 | `^10.0.1` |
 | `@nestjs/cli` | 개발·검증 | 설치됨 | `12.0.8` |
 | `@nestjs/testing` | 개발·검증 | 설치됨 | `12.1.1` |
@@ -24,7 +39,15 @@ NestJS·TypeScript·Swagger를 사용하는 서버로 구성한다. 소스는 `a
 | `typescript` | 개발·검증 | 설치됨 | `^5.9.3` |
 | `typescript-eslint` | 개발·검증 | 설치됨 | `^8.71.0` |
 
-실제 해석 버전은 루트 `pnpm-lock.yaml`을 기준으로 한다. Supabase 클라이언트는 M2에서 도입하며 아직 미설치다.
+실제 해석 버전은 루트 `pnpm-lock.yaml`을 기준으로 한다. Supabase SDK는 2.117.2로 정확히 고정 설치했다.
+
+## 사용자·인증 구현 · 2026-10-01
+
+`auth`는 Bearer 검증 Guard·현재 사용자 컨텍스트, `users`는 내 정보 유스케이스·DTO·프로필 저장소, `supabase`는 설정 검증·사용자별 SDK 클라이언트를 담당한다. `ProfileRepository` 인터페이스와 `SupabaseProfileRepo` 어댑터를 DI로 연결했다. AuthService는 `getUser(token)`으로 검증하고 사용자 요청에 서버 비밀 키를 사용하지 않는다. DB 클라이언트마다 요청자의 Authorization을 지정하며 세션 저장·자동 갱신·URL 세션 감지를 비활성화한다.
+
+호스트 진입점은 저장소 루트 `.env`를 읽는다. 기존 프로세스 환경변수가 우선한다. `SUPABASE_URL`과 `SUPABASE_PUBLISHABLE_KEY`가 필수이며 후자는 `sb_publishable_` 키만 허용한다. 실제 값은 Git 제외 `.env`에만 둔다. 테스트는 Supabase provider를 대체하여 자격 증명 없이 실행한다.
+
+검증: 타입·lint·빌드·Node 통합 테스트 10개 통과. 테스트는 API 정상 응답, 입력 검증, 인증 오류·외부 장애, 사용자 토큰 분리와 Swagger 계약을 확인한다. 실제 서버에서 health 200, 토큰 누락 401, 실제 Supabase에 잘못된 토큰을 전달한 401, OpenAPI 사용자 경로를 확인했다. 유효한 OAuth 세션을 통한 전체 로그인 검증은 미실행이다.
 
 검증 도구는 ESLint·typescript-eslint, Node 내장 테스트 러너·@nestjs/testing·supertest를 사용한다. AI HTTP 클라이언트는 미선정이다.
 
@@ -67,3 +90,7 @@ NestJS·TypeScript·Swagger를 사용하는 서버로 구성한다. 소스는 `a
 | E2E | 인증 → 업로드 → 분석 요청 → 상태·결과 조회, 타인 접근 거절, 일정 후보 확인·수정 |
 
 합성 대화를 사용한다. 실제 개인 대화를 픽스처로 저장하지 않는다. DB 테스트는 운영 데이터와 분리한다. 루트 `pnpm test`는 빌드 후 tests/health.test.cjs의 상태 확인·Swagger 통합 테스트를 실행한다. 위 표의 도메인 기능 검증은 해당 기능 구현 시 추가하며, 테스트 더블은 외부 연결 경계에 적용한다.
+
+## ESLint 기준 경로 수정 · 2026-10-03
+
+편집기에서 프론트·백엔드 설정을 함께 로드하면 TypeScript parser의 tsconfigRootDir 자동 추론이 충돌했다. 각 앱의 eslint.config.mjs에 parserOptions.tsconfigRootDir = import.meta.dirname을 명시했다. 두 앱 lint와 동일 Node 프로세스에서 양쪽 설정 로드·기준 경로·소스 파싱 검증을 통과했다. 타입 기반 lint 설정과 런타임 동작은 변경하지 않았다.

@@ -10,6 +10,8 @@ services:
     environment:
       PORT: "3000"
       NODE_ENV: development
+      SUPABASE_URL: "${SUPABASE_URL:?SUPABASE_URL을 .env에 설정하세요}"
+      SUPABASE_PUBLISHABLE_KEY: "${SUPABASE_PUBLISHABLE_KEY:?SUPABASE_PUBLISHABLE_KEY를 .env에 설정하세요}"
       TSC_WATCHFILE: DynamicPriorityPolling
       TSC_WATCHDIRECTORY: DynamicPriorityPolling
     volumes:
@@ -37,11 +39,15 @@ services:
       - "127.0.0.1:${FRONTEND_PORT:-5173}:5173"
     environment:
       API_PROXY_TARGET: http://backend:3000
+      NEXT_PUBLIC_SUPABASE_URL: "${SUPABASE_URL}"
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "${SUPABASE_PUBLISHABLE_KEY}"
       WATCH_POLLING: "${WATCH_POLLING:-true}"
     volumes:
       - ./apps/frontend/src:/workspace/apps/frontend/src
-      - ./apps/frontend/index.html:/workspace/apps/frontend/index.html
-      - ./apps/frontend/vite.config.ts:/workspace/apps/frontend/vite.config.ts
+      - ./apps/frontend/public:/workspace/apps/frontend/public
+      - ./design:/workspace/design
+      - ./apps/frontend/next.config.ts:/workspace/apps/frontend/next.config.ts
+      - ./apps/frontend/postcss.config.mjs:/workspace/apps/frontend/postcss.config.mjs
     depends_on:
       backend:
         condition: service_healthy
@@ -56,4 +62,4 @@ services:
       interval: 5s
       timeout: 3s
       retries: 12
-      start_period: 10s
+      start_period: 60s

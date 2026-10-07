@@ -15,12 +15,12 @@
 
 ## 주요 기능
 
-아래 기능은 구현 예정입니다.
+대화 업로드·원문·통계는 실제 데이터에 연결했습니다. AI 기능은 준비 중입니다.
 
 | 기능 | 제공할 내용 |
 | --- | --- |
 | 대화 업로드·파싱 | 카카오톡 내보내기 텍스트를 날짜·발화자·본문으로 구조화 |
-| 통계 리포트 | 대화량, 시간대 분포, 답장 간격 계산 |
+| 통계 리포트 | 기간·참여자별 대화량, 날짜·시간대 분포, 투머치 토커·단답맨·장문가·야행성·질문왕 |
 | 모순 탐지 | 발언 불일치 후보와 근거 메시지 표시 |
 | 페르소나 의견 | 관점별 의견과 갈등 해결 제안; 생성 응답을 실제 여론 비율로 표현하지 않음 |
 | 일정 관리 | AI가 추출한 일정 후보를 사용자가 확인한 후 저장·수정 |
@@ -31,10 +31,10 @@
 
 ```mermaid
 flowchart LR
-    U[사용자 브라우저 / React] -->|로그인| AUTH[Supabase Auth]
-    U -->|HTTPS / 서비스 API| N[Nginx]
-    N -->|정적 파일| F[React 빌드 결과]
-    N -->|/api 프록시| B[NestJS]
+    U[사용자 브라우저 / Next.js] -->|로그인| AUTH[Supabase Auth]
+    U -->|HTTPS / 화면·서비스 API| N[HTTPS 진입점]
+    N -->|화면·자산| F[Next.js Node 서버]
+    F -->|/api 프록시| B[NestJS]
     B -->|사용자별 데이터| DB[Supabase PostgreSQL]
     B -->|비공개 원본 파일| S[Supabase Storage]
     B -->|HTTP 분석 요청| AI[별도 AI 서버]
@@ -43,7 +43,7 @@ flowchart LR
 
 | 구성 | 기술과 책임 |
 | --- | --- |
-| 프론트엔드 | React, TypeScript, Vite, Tailwind CSS, shadcn/ui; 화면·입력·상태 표시 |
+| 프론트엔드 | Next.js App Router, React, TypeScript, Tailwind CSS, shadcn/ui; 화면·입력·상태 표시 |
 | 백엔드 | NestJS, TypeScript, Swagger; 인증 검증·파싱·통계·AI 작업 관리·결과 저장 |
 | 데이터베이스 | Supabase Auth, PostgreSQL, 비공개 Storage; 사용자와 데이터 보관 |
 | AI 서버 | 로컬 모델 실행 서버 또는 GPU 대여 서버; 모델·제공자 미선정 |
@@ -61,7 +61,7 @@ flowchart LR
     A -->|배포 명령| EC[EC2 한 대]
     E -->|인증 후 이미지 다운로드| EC
     subgraph EC[EC2 한 대]
-        FC[프론트 컨테이너 / Nginx + React]
+        FC[프론트 컨테이너 / Next.js Node 서버]
         BC[백엔드 컨테이너 / NestJS]
         FC --> BC
     end
@@ -73,7 +73,7 @@ EC2에서 Docker Compose로 두 컨테이너를 실행합니다. 커밋 SHA 태�
 
 ## 현재 상태와 개발 문서
 
-현재는 **M1 개발 기반 구성 완료 단계**입니다. React·NestJS 앱을 pnpm workspace와 Turborepo로 구성했으며 상태 확인 API·Swagger·Docker 개발 환경이 있습니다. 로그인·DB·AI·실제 배포는 아직 구현하지 않았습니다.
+현재는 **M1 완료, M2 대화 업로드·원문·통계 구현 단계**입니다. 카카오톡 PC·모바일 TXT를 NestJS에서 파싱하고 사용자별 Supabase DB와 비공개 Storage에 보관합니다. 원문은 검색·기간·참여자·페이지 조회, 통계는 전체 데이터의 SQL 집계를 제공합니다. shadcn 달력·입력·선택·프로필·차트와 400개 참여자 색 조합을 사용합니다. OAuth는 카카오 성공 확인 상태이며 Google·GitHub 재확인, 실제 사용자 파일 업로드 전체 검증, AI 연결·배포는 남아 있습니다. AI 탭은 준비 중으로 표시합니다.
 
 ## 로컬 개발
 
@@ -89,19 +89,19 @@ docker compose up --build
 
 | 접근 주소 | 용도 |
 | --- | --- |
-| http://localhost:5173 | React 개발 화면·백엔드 연결 확인 |
+| http://localhost:5173 | Next.js 화면 체험·백엔드 연결 확인 |
 | http://localhost:3000/api/health | 백엔드 상태; `{"status":"ok","service":"backend"}` |
 | http://localhost:5173/api/docs | 프론트 프록시를 통한 Swagger |
 | http://localhost:3000/api/docs | 백엔드 Swagger 직접 접근 |
 | http://localhost:3000/api/docs-json | OpenAPI JSON |
 
-소스 변경은 Vite HMR·NestJS watch로 반영합니다. Windows 파일 변경 감지를 위해 polling을 사용합니다. 의존성·Dockerfile·백엔드 설정 변경 후에는 `docker compose up --build`로 재빌드합니다. 실행을 종료하려면 다음 명령을 사용합니다.
+소스 변경은 Next.js Fast Refresh·NestJS watch로 반영합니다. Windows 파일 변경 감지를 위해 polling을 사용합니다. 의존성·Dockerfile·백엔드 설정 변경 후에는 `docker compose up --build`로 재빌드합니다. 실행을 종료하려면 다음 명령을 사용합니다.
 
 ```sh
 docker compose down
 ```
 
-`.env.example`을 `.env`로 복사하면 호스트 포트를 변경할 수 있습니다. 기본값 사용 시 복사하지 않아도 됩니다. Compose는 개발 전용이며 Nginx·HTTPS 운영 이미지는 M4에서 구성합니다. DB·AI 서버를 로컬 컨테이너로 실행하지 않습니다.
+실행 전 저장소 루트의 `.env.example`을 Git 제외 `.env`로 복사하고 `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`를 설정합니다. Supabase Dashboard의 publishable 키를 사용하며 서버 secret/service_role 키는 필요하지 않습니다. 호스트 백엔드도 루트 `.env`를 읽습니다. 이번 작업의 로컬 `.env`에는 연결된 프로젝트의 공개 설정을 준비했습니다. Compose는 개발 전용이며 Next.js Node 운영 이미지와 HTTPS 진입점은 M4에서 구성합니다. DB·AI 서버를 로컬 컨테이너로 실행하지 않습니다.
 
 ### 호스트 실행·검증
 
@@ -112,7 +112,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Docker와 호스트 개발 서버는 동일 포트를 사용하므로 한 방식씩 실행합니다. 호스트 Vite도 `/api`를 백엔드 3000번 포트로 프록시합니다.
+Docker와 호스트 개발 서버는 동일 포트를 사용하므로 한 방식씩 실행합니다. 호스트 Next.js도 `/api`를 백엔드 3000번 포트로 프록시합니다.
 
 ```sh
 pnpm typecheck
@@ -121,7 +121,9 @@ pnpm build
 pnpm test
 ```
 
-`pnpm test`는 Turborepo가 백엔드를 빌드한 후 상태 API·Swagger 통합 테스트를 실행합니다. 현재 프론트 테스트 스위트는 없으며 타입 검사·정적 검사·빌드와 개발 서버 연결로 검증합니다.
+`pnpm test`는 Turborepo가 백엔드를 빌드한 후 상태·Swagger·사용자·인증 통합 테스트를 실행합니다. 현재 프론트 자동 테스트 스위트는 없으며 타입 검사·정적 검사·빌드와 개발 서버 연결로 검증합니다.
+
+사용자 API는 `GET /api/users/me`, `PATCH /api/users/me`이며 Supabase 액세스 토큰을 Bearer 헤더로 전달합니다. 상세 계약은 [백엔드 API](.agents/backend/api.md#사용자-api-계약--2026-10-01), OAuth 설정 준비는 [인프라 지침](.agents/infra/guide.md#oauth-연결-준비--2026-10-01), 마이그레이션·롤백 검증은 [Supabase 기록](supabase/README.md)을 참조합니다.
 
 브랜치는 `codex/m<번호>/<기능>`, 커밋은 한 작업 단위의 `<type>(<scope>): <한국어 요약>`으로 나눕니다. 상세 규칙은 [하네스](.agents/agents.md#브랜치와-커밋-규칙)를 따릅니다. `.agents`와 잠금 파일은 추적하며 의존성·임시 파일·빌드 결과·비밀 설정은 제외합니다.
 
@@ -139,3 +141,15 @@ pnpm test
 ## 라이선스
 
 [LICENSE](LICENSE)를 참고합니다.
+
+### 화면 체험
+
+/login에서 Google·GitHub·카카오 공식 버튼으로 로그인을 시작하거나 화면 체험하기를 선택합니다. 로그인 후 상단 내 계정에서 닉네임 수정과 로그아웃을 제공합니다. 대화는 /conversations, /upload, /conversation/team/messages·statistics·contradiction·opinions·schedules의 합성 예시입니다. 예시 변경은 현재 탭 메모리에만 유지됩니다. 실제 파일은 로컬 미리보기만 지원하고 서버에 전송하지 않습니다. 상세는 [.agents/frontend/screens.md](.agents/frontend/screens.md)를 참조합니다.
+
+프로덕션 로컬 실행은 빌드 후 pnpm --filter @gratta/frontend start이며 포트는 5173입니다. API 프록시 기본 대상은 http://127.0.0.1:3000입니다.
+
+### 로그인 직접 확인
+
+루트 .env의 SUPABASE_URL·SUPABASE_PUBLISHABLE_KEY를 프론트도 사용합니다. 공개 publishable 키만 전달하며 제공자 Client Secret은 Supabase Dashboard에 둡니다. 환경변수가 바뀌었다면 dev 서버를 재시작합니다. `pnpm dev`로 두 앱을 실행하고 http://localhost:5173/login에서 로그인하세요. Supabase Redirect URLs에는 http://localhost:5173/auth/callback이 등록되어 있어야 합니다. 제공자 앱 Callback URL은 Supabase Dashboard에 표시된 https://fthzjaeucyiudbjxmlgu.supabase.co/auth/v1/callback입니다.
+
+로그인 후 /conversations로 이동하면 상단 내 계정에서 닉네임 저장과 로그아웃을 확인할 수 있습니다. SDK 세션은 브라우저에 유지하며 로그인 시작·완료 시 동일 hostname을 사용하세요. 공식 버튼·로고 출처는 [리소스 기록](apps/frontend/public/auth/README.md)에 있습니다. 이번 프론트 OAuth 변경은 사용자 요청에 따라 테스트·타입 검사·lint·빌드·실로그인 검증을 실행하지 않았습니다.
