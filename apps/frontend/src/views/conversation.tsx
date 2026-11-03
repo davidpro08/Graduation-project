@@ -30,6 +30,6 @@ export function MessagesPage({conversation,messageId}:{conversation:Conversation
 function AnalysisPlaceholder({title}:{title:string}) {
   return <><Notice>AI 분석 연결을 준비하고 있습니다.</Notice><Card title={title}><Empty title="준비 중">AI 서비스 연결 후 이 대화의 실제 메시지를 분석한 결과를 제공합니다.</Empty><Button disabled>AI 연결 준비 중</Button></Card></>;
 }
-export function ContradictionPage({conversation}:{conversation:Conversation}){return <AnalysisPage id={conversation.id} type="contradiction"/>;}
+export function ContradictionPage({conversation}:{conversation:Conversation}){return <AnalysisPage id={conversation.id} type="contradiction" endDate={conversation.endDate}/>;}
 export function OpinionsPage(){return <AnalysisPlaceholder title="관점별 의견"/>;}
-export function SchedulesPage({conversation}:{conversation:Conversation}){return <AnalysisPage id={conversation.id} type="schedule"/>;}
+export function SchedulesPage({conversation}:{conversation:Conversation}){return <AnalysisPage id={conversation.id} type="schedule" endDate={conversation.endDate}/>;}
