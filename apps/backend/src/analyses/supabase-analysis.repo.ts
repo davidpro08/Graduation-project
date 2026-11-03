@@ -2,9 +2,10 @@ import { ConflictException, Injectable, NotFoundException, ServiceUnavailableExc
 import type { AuthUser } from '../auth/auth.types';
 import { SupabaseService } from '../supabase/supabase.service';
 import type { AnalysisItem, AnalysisJob, AnalysisRepo, AnalysisType, Schedule, ScheduleInput } from './analysis.types';
-import { hasDateExpression, suggestTime } from './schedule-time';
+import { scheduleCandidate } from './schedule-candidate';
+import type { TimeSuggestion } from './schedule-time';
 type JobRow={id:string;conversation_id:string;analysis_type:AnalysisType;status:AnalysisJob['status'];error_code:string|null;created_at:string;updated_at:string;result:AnalysisJob['result'];metadata:AnalysisJob['metadata']};
-type ScheduleRow={id:string;conversation_id:string;job_id:string;title:string;date_time_text:string;evidence_message_ids:string[];status:Schedule['status'];starts_at:string|null;ends_at:string|null};
+type ScheduleRow={id:string;conversation_id:string;job_id:string;item_index:number;title:string;date_time_text:string;evidence_message_ids:string[];status:Schedule['status'];starts_at:string|null;ends_at:string|null};
 const job=(row:JobRow):AnalysisJob=>({id:row.id,conversationId:row.conversation_id,analysisType:row.analysis_type,status:row.status,errorCode:row.error_code,createdAt:row.created_at,updatedAt:row.updated_at,result:row.result,metadata:row.metadata});
 const schedule=(row:ScheduleRow):Schedule=>({id:row.id,conversationId:row.conversation_id,jobId:row.job_id,title:row.title,dateTimeText:row.date_time_text,evidenceMessageIds:row.evidence_message_ids,status:row.status,startsAt:row.starts_at,endsAt:row.ends_at});
 const unavailable=()=>new ServiceUnavailableException('분석 저장 서비스를 사용할 수 없습니다. 다시 시도해 주세요.');
@@ -35,6 +36,13 @@ export class SupabaseAnalysisRepo implements AnalysisRepo {
     const {data,error}=await this.db.forUser(user.token).from('schedules').select('*').eq('owner_id',user.id).eq('conversation_id',conversationId).order('created_at').limit(1000);
     if(error||!data)throw unavailable();
     const rows=data as ScheduleRow[];
+    const savedItems=new Map<string,AnalysisItem[]>();
+    const jobIds=[...new Set(rows.filter(row=>row.status==='proposed').map(row=>row.job_id))];
+    for(let offset=0;offset<jobIds.length;offset+=100){
+      const response=await this.db.forUser(user.token).from('analysis_jobs').select('id,result').eq('owner_id',user.id).eq('conversation_id',conversationId).in('id',jobIds.slice(offset,offset+100));
+      if(response.error||!response.data)throw unavailable();
+      for(const saved of response.data as {id:string;result:{items:AnalysisItem[]}|null}[])if(saved.result?.items)savedItems.set(saved.id,saved.result.items);
+    }
     const ids=[...new Set(rows.flatMap(row=>row.evidence_message_ids))];
     type Reference={id:string;sequence:number;body:string;message_date:string;message_time:string|null};
     const references=new Map<string,Reference>();
@@ -45,10 +53,13 @@ export class SupabaseAnalysisRepo implements AnalysisRepo {
     }
     return rows.map(row=>{
       const evidence=row.evidence_message_ids.map(id=>references.get(id)).filter((ref):ref is Reference=>!!ref).sort((a,b)=>a.sequence-b.sequence);
-      const normalized=row.date_time_text.replace(/\s/g,'');
-      const source=evidence.find(ref=>ref.body.replace(/\s/g,'').includes(normalized))??evidence.find(ref=>hasDateExpression(ref.body))??evidence[0];
-      const expression=source?.body.replace(/\s/g,'').includes(normalized)?row.date_time_text:source?.body;
-      return {...schedule(row),...(source&&expression?{suggestion:suggestTime(expression,source.message_date,source.message_time?.slice(0,5)??'00:00')}:{})};
+      if(row.status==='confirmed')return schedule(row);
+      const saved=savedItems.get(row.job_id)?.[row.item_index];
+      const stored=saved?.suggestion;
+      const validStored=stored&&typeof stored.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(stored.date)&&typeof stored.time==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(stored.time)&&Array.isArray(stored.warnings)&&stored.warnings.every(text=>typeof text==='string');
+      const suggestion:TimeSuggestion|undefined=validStored?stored:scheduleCandidate({title:row.title,dateTimeText:row.date_time_text,evidenceMessageIds:row.evidence_message_ids},
+        evidence.map(ref=>({id:ref.id,sequence:ref.sequence,date:ref.message_date,time:ref.message_time?.slice(0,5)??'',text:ref.body,speaker:'',participantId:null,kind:'text'})));
+      return {...schedule(row),...(suggestion?{suggestion}:{})};
     });
   }
   async saveSchedule(user:AuthUser,id:string,input:ScheduleInput,confirm:boolean){

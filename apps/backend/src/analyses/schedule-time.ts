@@ -1,4 +1,4 @@
-export interface TimeSuggestion {date:string|null;time:string|null;endTime:string|null;referenceDate:string;referenceTime:string;warnings:string[]}
+export interface TimeSuggestion {date:string|null;time:string|null;endTime:string|null;referenceDate:string;referenceTime:string;warnings:string[];uncertain?:boolean}
 const CLOCK=/(오전|오후|아침|저녁|밤|낮)?\s*(\d{1,2})\s*(?:시\s*(?:(반)|(\d{1,2})\s*분?)?|:(\d{2}))/g;
 const pad=(n:number)=>String(n).padStart(2,'0');
 const dateText=(date:Date)=>date.toISOString().slice(0,10);
