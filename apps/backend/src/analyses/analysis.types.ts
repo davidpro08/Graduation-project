@@ -2,7 +2,10 @@ import type { AuthUser } from '../auth/auth.types';
 import type { ChatMessage } from '../conversations/conversation.types';
 import type { TimeSuggestion } from './schedule-time';
 export type AnalysisType = 'contradiction' | 'schedule';
-export interface AnalysisItem { summary?: string; title?: string; dateTimeText?: string; evidenceMessageIds: string[] }
+export interface AnalysisItem {
+  summary?: string; title?: string; dateTimeText?: string; evidenceMessageIds: string[];
+  date?: string|null; time?: string|null; uncertain?: boolean; suggestion?: TimeSuggestion;
+}
 export interface AnalysisJob {
   id: string; conversationId: string; analysisType: AnalysisType;
   status: 'pending'|'processing'|'completed'|'failed'; errorCode: string|null;
