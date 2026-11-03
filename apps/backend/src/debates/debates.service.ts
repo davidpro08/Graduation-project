@@ -6,13 +6,14 @@ import { ConversationsService } from '../conversations/conversations.service';
 import { aggregate } from './debate.statistics';
 import { analysisTopic, editDocument, prepareDocument } from './debate.document';
 import { composeMarkdown } from './debate-markdown';
-import { PERSONA_LIMIT, DETAIL_LIMIT } from '../personas/persona.policy';
+import { PERSONA_LIMIT, allocatePersonas, personaBudget } from '../personas/persona.policy';
 import { DEBATE_AI, DEBATE_REPO, PERSONA_SOURCE, JEV_OPINIONS, DebateError,
   type DebateAi, type DebateRepo, type PersonaSource, type JevOpinions, type PersonaFilters,
   DOCUMENT_RESEARCH, type ResearchProvider, type DebateDocument, type DebateTopic, type DocumentEdit, type Persona, type PersonaResponse } from './debate.types';
 
 @Injectable()
 export class DebatesService implements OnModuleDestroy {
+  private readonly budget = personaBudget();
   private readonly active = new Map<string, { controller: AbortController; user: AuthUser }>();
   constructor(@Inject(DEBATE_REPO) private readonly repo: DebateRepo,
     @Inject(PERSONA_SOURCE) private readonly personas: PersonaSource,
@@ -24,8 +25,7 @@ export class DebatesService implements OnModuleDestroy {
   async preview(user: AuthUser, conversationId: string, filters: PersonaFilters) {
     await this.chats.find(user, conversationId);
     const selection = await this.personas.select(filters, `${user.id}:preview`, true, { user, conversationId });
-    const selected = Math.min(PERSONA_LIMIT, selection.eligible);
-    return { eligible: selection.eligible, selected, detail: Math.min(DETAIL_LIMIT, selected), jev: Math.max(0, selected - DETAIL_LIMIT) };
+    return { eligible: selection.eligible, ...allocatePersonas(selection.eligible, this.budget) };
   }
   async find(user: AuthUser, id: string) {
     let job = await this.repo.find(user, id);
@@ -123,12 +123,14 @@ export class DebatesService implements OnModuleDestroy {
   private async run(user: AuthUser, id: string, conversationId: string, filters: PersonaFilters, topic: DebateTopic, controller: AbortController) {
     const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(7200000)]);
     try {
-      this.ai.ready();
       await this.repo.progress(user, id, 'sampling', 0, 0);
-      const { eligible, personas } = await this.personas.select(filters, id, false, { user, conversationId });
-      if (!personas.length) throw new DebateError('NO_PERSONAS');
-      if (personas.length > PERSONA_LIMIT || new Set(personas.map(p => p.id)).size !== personas.length) throw new DebateError('PERSONA_INVALID_SAMPLE');
-      if (personas.length > DETAIL_LIMIT) this.jev.ready();
+      const selection = await this.personas.select(filters, id, false, { user, conversationId });
+      if (!selection.personas.length) throw new DebateError('NO_PERSONAS');
+      if (selection.personas.length > PERSONA_LIMIT || new Set(selection.personas.map(p => p.id)).size !== selection.personas.length) throw new DebateError('PERSONA_INVALID_SAMPLE');
+      const { eligible } = selection, personas = selection.personas.slice(0, this.budget.total);
+      const { detail, jev } = allocatePersonas(personas.length, this.budget);
+      if (detail) this.ai.ready();
+      if (jev) this.jev.ready();
       const responses: PersonaResponse[] = [];
       // 동시 저장의 역전 없이 진행률을 단조 증가시킨다. 모델 호출은 소수 worker로 제한한다.
       let progress = Promise.resolve();
@@ -152,7 +154,7 @@ export class DebatesService implements OnModuleDestroy {
             }
             responses.push(row);
             const processed = responses.length;
-            progress = progress.then(() => this.repo.progress(user, id, responses.filter(r=>r.mode==='detail').length>=Math.min(DETAIL_LIMIT,personas.length)?'jev':'detail', processed, personas.length));
+            progress = progress.then(() => this.repo.progress(user, id, responses.filter(r=>r.mode==='detail').length>=detail?'jev':'detail', processed, personas.length));
             await progress;
           }
         }));
@@ -160,7 +162,7 @@ export class DebatesService implements OnModuleDestroy {
         const rejected = workers.find(worker => worker.status === 'rejected');
         if (rejected?.status === 'rejected') throw rejected.reason;
       };
-      const groups=await Promise.allSettled([runGroup(personas.slice(0, DETAIL_LIMIT),'detail',2),runGroup(personas.slice(DETAIL_LIMIT),'jev',4)]);
+      const groups=await Promise.allSettled([runGroup(personas.slice(0, detail),'detail',2),runGroup(personas.slice(detail),'jev',4)]);
       if(fatalCause)throw fatalCause;
       const failedGroup=groups.find(group=>group.status==='rejected');if(failedGroup?.status==='rejected')throw failedGroup.reason;
       signal.throwIfAborted();
@@ -168,7 +170,7 @@ export class DebatesService implements OnModuleDestroy {
       // 표본 순서를 보존하여 재조회와 개별 응답 목록이 안정적으로 유지되게 한다.
       responses.sort((a, b) => personas.findIndex(p => p.id === a.persona.id) - personas.findIndex(p => p.id === b.persona.id));
       await this.repo.finish(user, id, { topic, filters, eligible, selected: personas.length,
-        detailTarget: Math.min(DETAIL_LIMIT, personas.length), jevTarget: Math.max(0, personas.length - DETAIL_LIMIT), responses, statistics: aggregate(responses,{},topic.answerSchema) });
+        detailTarget: detail, jevTarget: jev, responses, statistics: aggregate(responses,{},topic.answerSchema) });
     } catch (error) {
       const code = error instanceof DebateError ? error.code : signal.aborted ? 'DEBATE_TIMEOUT' : 'DEBATE_FAILED';
       try { await this.repo.fail(user, id, code); } catch { /* 다음 소유자 조회 시 중단 작업으로 복구한다. */ }
