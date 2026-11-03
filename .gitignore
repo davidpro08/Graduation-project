@@ -26,6 +26,7 @@ supabase/.temp/
 tmp/
 temp/
 *.log
+__pycache__/
 
 # 운영체제 생성 파일
 .DS_Store
