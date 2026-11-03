@@ -9,6 +9,7 @@ import { PageControls, ParticipantAvatar, QueryFilters } from '@/features/conver
 import { useQueryResult } from '@/features/conversations/hooks';
 import { formatDate, type ChatFilter, type Conversation } from '@/features/conversations/types';
 import { AnalysisPage } from '@/features/conversations/analysis';
+import { PersonaDebatePage } from '@/features/debates/page';
 
 export function MessagesPage({conversation,messageId}:{conversation:Conversation;messageId?:string}) {
   const [filter,setFilter]=useState<ChatFilter>(messageId?{messageId}:{page:1});const key=JSON.stringify([conversation.id,filter]);
@@ -27,9 +28,6 @@ export function MessagesPage({conversation,messageId}:{conversation:Conversation
     {data && !error && <PageControls page={data.page} total={data.total} pageSize={data.pageSize} disabled={loading} onChange={page=>{setFilter({...filter,messageId:undefined,page});window.scrollTo({top:0,behavior:'smooth'});}}/>}
   </Card>;
 }
-function AnalysisPlaceholder({title}:{title:string}) {
-  return <><Notice>AI 분석 연결을 준비하고 있습니다.</Notice><Card title={title}><Empty title="준비 중">AI 서비스 연결 후 이 대화의 실제 메시지를 분석한 결과를 제공합니다.</Empty><Button disabled>AI 연결 준비 중</Button></Card></>;
-}
 export function ContradictionPage({conversation}:{conversation:Conversation}){return <AnalysisPage id={conversation.id} type="contradiction" endDate={conversation.endDate}/>;}
-export function OpinionsPage(){return <AnalysisPlaceholder title="관점별 의견"/>;}
+export function OpinionsPage({conversation}:{conversation:Conversation}){return <PersonaDebatePage conversation={conversation}/>;}
 export function SchedulesPage({conversation}:{conversation:Conversation}){return <AnalysisPage id={conversation.id} type="schedule" endDate={conversation.endDate}/>;}

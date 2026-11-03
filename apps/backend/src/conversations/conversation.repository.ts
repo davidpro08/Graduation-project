@@ -1,5 +1,5 @@
 import type { AuthUser } from '../auth/auth.types';
-import type { ChatFilter, ChatUpload, Conversation, MessagePage, Statistics } from './conversation.types';
+import type { ChatFilter, ChatUpload, Conversation, ChatMessage, MessagePage, Statistics } from './conversation.types';
 export const CONVERSATIONS = Symbol('CONVERSATIONS');
 export interface ConversationRepository {
   list(user: AuthUser, page: number, search?: string): Promise<{ items: Conversation[]; total: number }>;
@@ -8,6 +8,7 @@ export interface ConversationRepository {
   create(user: AuthUser, upload: ChatUpload): Promise<void>;
   remove(user: AuthUser, id: string): Promise<void>;
   messages(user: AuthUser, id: string, filter: ChatFilter): Promise<MessagePage>;
+  selectedMessages(user:AuthUser,id:string,ids:string[]):Promise<ChatMessage[]>;
   statistics(user: AuthUser, id: string, filter: ChatFilter): Promise<Statistics>;
 }
 export const ORIGINAL_FILES = Symbol('ORIGINAL_FILES');
