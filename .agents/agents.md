@@ -1,5 +1,13 @@
 # 하네스와 진행 상태
 
+## 새 학교 인스턴스 AI·SSH 복구 · 2026-11-03
+
+사용자가 지정한 `root@203.252.159.18:51772`에 기존 로컬 `~/.ssh/jev-test.pem`으로 접속했다. 새 컨테이너의 `/opt/gratta-ai`가 없어 저장소 실행 파일4개를 전송하고, 실제 마운트된 `/mnt/jev_ae63e/gratta-ai`의 모델 캐시를 재사용해 GPU·CPU venv를 복구했다. GPU vLLM0.32.0 / torch2.13.0+cu132 / Qwen3-32B-AWQ, CPU torch2.10.0+cpu / transformers5.17.0 / Qwen3-0.6B이며 모델·엔진 리비전은 기존 고정값을 유지한다. `gratta-qwen`·`gratta-jev` tmux로 기동했다.
+
+기존 로컬 앱3000/5173은 실행 중이고18080/18081의 이전 SSH 프로세스는 없었다. 두 터널을 새 포트로 생성했고 기존 `.env`의 AI 주소가 일치해 앱 설정 변경·재시작은 하지 않았다. Git 제외 `.tmp/school-ai-ssh.config`와 `.tmp/school-ai-known_hosts`를 준비했다. 터널 도구는 선택적 `SshConfigFile`만 추가해 별도 호스트 키 파일을 사용할 수 있게 했다. [접속·재연결 명령](../scripts/school-ai/README.md#현재-접속--2026-11-03)을 따른다.
+
+검증: 두 bootstrap 신규ready, 두 로컬 터널health200, Qwen 모델ID 일치·합성 한국어 요청에 ‘준비 완료입니다.’/finish_reason=stop, JEV 합성1건의personaId·CPU·선택확률5개·합1 확인. PowerShell 구문 검사·실제 설정 파일 접속/터널 생성·git diff --check 통과. 결과는 `.tmp/school-ai-51772-{qwen,jev}-smoke.json`에 저장했다. GPU 첫 로딩 중 일시적 메모리 할당OOM 경고가 있었으나 엔진 초기화·실제 생성까지 성공해 재기동/설정 축소는 하지 않았다. 품질 개선이나200명 전체 분석 검증은 아니다. 합성 지지 인물에 대한 JEV는중립을 반환했으며 기존 품질 한계는 남는다. 서버/PC 재부팅 자동 복구는 미구성이다. 기존 다른 사용자 변경은 보존했다.
+
 ## 브랜치별 Git 체크포인트 · 2026-11-03
 
 사용자 요청으로 현재 구현을 기능별 의존 브랜치3개·커밋7개로 저장한다. 원래 codex/m3/persona-debate(cea5ede)는 그대로 보존한다. 아래 브랜치는 앞 단계의 커밋을 포함하는 연속 구조이며 원격 푸시·기존 커밋 재작성·브랜치 삭제는 수행하지 않는다.

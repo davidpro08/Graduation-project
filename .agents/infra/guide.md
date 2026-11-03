@@ -1,5 +1,13 @@
 # 인프라 지침
 
+## 현재 학교 AI 서버·SSH · 2026-11-03
+
+현재 대상은 `root@203.252.159.18:51772`이며 아래51201은 이전 인스턴스다. 새 컨테이너에서 `/opt/gratta-ai`의 GPU·CPU 실행 환경을 재설치하고 영구 볼륨 `/mnt/jev_ae63e/gratta-ai`의 기존 모델을 재사용했다. 전용tmux `gratta-qwen`·`gratta-jev`와 로컬18080/18081 터널이 실행 중이다. 학교8080·기존 로컬 앱3000/5173은 변경하지 않았다.
+
+Git 제외 `.tmp/school-ai-ssh.config`에 현재 접속 정보, `.tmp/school-ai-known_hosts`에 새 호스트 키를 보관한다. `ssh -F .tmp/school-ai-ssh.config gratta-school-ai`로 저장소 루트에서 접속한다. `connect.ps1 -SshConfigFile .tmp/school-ai-ssh.config`는 같은 호스트 키 검사를 사용한다. [전체 명령](../../scripts/school-ai/README.md#현재-접속--2026-11-03)을 따른다. 로컬 키 본문이나.env를 원격에 전송하지 않았다.
+
+검증: 신규bootstrap2개ready·로컬터널2개health200·Qwen 모델ID/한국어 생성stop·JEV CPU판정/확률합1·백엔드health200. 실제 앱의200명 분석·품질평가·Docker는 재검증하지 않았다. 기존.env가 새 터널의 동일 로컬주소를 사용해 앱 재시작은 불필요했다. GPU 로딩 중 일시적OOM 경고 뒤 초기화·추론 성공을 확인했다. SSH 단절에도tmux 모델은 유지되지만 서버 재부팅·PC 재부팅 자동 복구는 구성하지 않았다.
+
 ## 문서 파이프라인 로컬 실행 확인 · 2026-11-03
 
 코드 검증 후5173 프론트만 응답하고3000 백엔드는 리스너 없이 Nest 감시 프로세스만 남아 있는 상태를 확인했다. PID28156의 명령줄이 이 프로젝트의 nest start --watch이고 자식 프로세스가 없음을 확인한 뒤 해당 프로세스만 중단하고 숨김 백엔드 감시 프로세스를 재기동했다. 이어 프론트 프로세스 종료/5173 리스너 없음도 확인해 같은 포트로 숨김 Next 개발 서버를 재실행했다. 다른 Node 프로세스·학교 GPU/CPU 서버·SSH 터널은 종료하지 않았다.

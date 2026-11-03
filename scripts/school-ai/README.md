@@ -2,6 +2,30 @@
 
 새 인스턴스를 처음부터 준비할 때는 [.agents/AI/instance-setup.md](../../.agents/AI/instance-setup.md)의 단계별 명령을 따른다. 이 문서는 개별 스크립트의 책임과 실행 예시를 설명한다.
 
+## 현재 접속 · 2026-11-03
+
+새 인스턴스는 `root@203.252.159.18:51772`다. 로컬 `~/.ssh/jev-test.pem`으로 접속하며 영구 볼륨 `/mnt/jev_ae63e/gratta-ai`의 모델을 재사용해 `/opt/gratta-ai`의 GPU·CPU 환경을 복구했다. 아래 명령은 저장소 루트의 로컬 PowerShell에서 실행한다.
+
+```powershell
+ssh -F .tmp/school-ai-ssh.config gratta-school-ai
+```
+
+Git 제외 `.tmp/school-ai-ssh.config`에 현재 주소·포트·로컬 키 경로가 있고, `.tmp/school-ai-known_hosts`에 새 인스턴스의 호스트 키를 기록했다. 개인키 본문은 복사하지 않는다. 두 파일은 현재 PC에만 있으므로 새 체크아웃에는 [초기 접속 절차](../../.agents/AI/instance-setup.md#2-로컬에서-접속-정보-지정파일-전송)를 적용한다. 별도 호스트 키 파일은 [OpenSSH의 UserKnownHostsFile 설정](https://man.openbsd.org/ssh_config#UserKnownHostsFile)을 사용하고 호스트 키 검사는 유지한다.
+
+| 연결 | 로컬 주소 | 원격 주소 |
+| --- | --- | --- |
+| Qwen3-32B-AWQ | `127.0.0.1:18080` | `127.0.0.1:8000` |
+| JEV-CPU / Qwen3-0.6B | `127.0.0.1:18081` | `127.0.0.1:8001` |
+
+PC 재시작 등으로 터널이 종료된 경우 아래 명령을 각각 실행한다. 실행 중인 터널은 중복 생성하지 않는다.
+
+```powershell
+./scripts/school-ai/connect.ps1 -Server 203.252.159.18 -SshPort 51772 -IdentityFile "$env:USERPROFILE/.ssh/jev-test.pem" -SshConfigFile .tmp/school-ai-ssh.config
+./scripts/school-ai/connect.ps1 -Server 203.252.159.18 -SshPort 51772 -IdentityFile "$env:USERPROFILE/.ssh/jev-test.pem" -SshConfigFile .tmp/school-ai-ssh.config -LocalPort 18081 -RemotePort 8001
+```
+
+`connect.ps1`의 선택적 `SshConfigFile`은 지정한 SSH 설정 파일을 사용하며 생략 시 기존 사용법을 유지한다. 서버는 `gratta-qwen`·`gratta-jev` tmux 세션으로 유지된다. 서버 재부팅 시 자동 기동은 구성하지 않았다. 아래 `51201` 예시는 이전 인스턴스의 접속 기록이다.
+
 기존 NestJS의 `QwenDebateHttp`·`QwenHttp`를 바꾸지 않고 `/tokenize`, `/v1/chat/completions`에 연결한다. 공식 Qwen3-32B-AWQ와 vLLM의 설치 버전·모델 리비전은 `bootstrap.py`에 고정한다. 실제 측정·진행 상태는 [.agents/AI](../../.agents/AI/guide.md)를 따른다.
 
 | 파일 | 책임 |

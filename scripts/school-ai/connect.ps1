@@ -1,6 +1,7 @@
 param(
   [Parameter(Mandatory = $true)][string]$Server,
   [Parameter(Mandatory = $true)][string]$IdentityFile,
+  [string]$SshConfigFile,
   [int]$SshPort = 22,
   [int]$LocalPort = 18080,
   [int]$RemotePort = 8000
@@ -17,6 +18,10 @@ $errorLog = Join-Path $stateRoot "school-ai-tunnel-$LocalPort.err.log"
 $sshArgs = @('-i', ('"' + $keyPath + '"'), '-p', "$SshPort", '-N', '-T', '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes',
   '-o', 'IdentitiesOnly=yes', '-o', 'ExitOnForwardFailure=yes', '-o', 'ServerAliveInterval=30', '-o', 'ServerAliveCountMax=3',
   '-L', "127.0.0.1:${LocalPort}:127.0.0.1:${RemotePort}", "root@$Server")
+if ($SshConfigFile) {
+  $configPath = (Resolve-Path -LiteralPath $SshConfigFile).Path
+  $sshArgs = @('-F', ('"' + $configPath + '"')) + $sshArgs
+}
 $tunnel = Start-Process -FilePath 'ssh' -ArgumentList $sshArgs -WindowStyle Hidden -RedirectStandardError $errorLog -PassThru
 for ($attempt = 0; $attempt -lt 40; $attempt++) {
   if ($tunnel.HasExited) { throw "SSH 터널 시작 실패. $errorLog 로그를 확인하세요." }
