@@ -61,7 +61,7 @@ export class DebatesController {
   research(@CurrentUser() user:AuthUser,@Param('id',uuid) id:string,@Body() body:ResearchDto){return this.service.researchDocument(user,id,body.revision,body.queries);}
   @Post('persona-debates/:id/restart') @HttpCode(202) @ApiOperation({summary:'실패 기록을 보존하고 기존 입력·필터로 새 분석 시작'})
   restart(@CurrentUser() user:AuthUser,@Param('id',uuid) id:string,@Body() body:RestartDto){return this.service.restart(user,id,body.mode);}
-  @Post('persona-debates/:id/run') @HttpCode(202) @ApiOperation({ summary: '확인한 요약 문서로 상세20+JEV180 분석 시작' })
+  @Post('persona-debates/:id/run') @HttpCode(202) @ApiOperation({ summary: '확인한 문서로 설정된 인원만큼 상세·JEV 분석 시작' })
   run(@CurrentUser() user: AuthUser, @Param('id', uuid) id: string, @Body() body: RevisionDto) { return this.service.start(user, id, body.revision); }
   @Post('persona-debates/:id/result') @HttpCode(200) @ApiOperation({ summary: '저장된 응답에 필터를 적용해 재집계 (모델 재호출 없음)' })
   result(@CurrentUser() user: AuthUser, @Param('id', uuid) id: string, @Body() body: FilterBody) { return this.service.result(user, id, body.filters ?? {}); }

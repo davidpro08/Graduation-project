@@ -1,5 +1,26 @@
 # 하네스와 진행 상태
 
+## 기능별 커밋·PR 게시 · 2026-11-03
+
+학교 재연결을 f11871b, 기본50/50과 인원 설정을 d26eba7로 각각 저장했다. 인원 설정은 새 codex/m3/persona-budget 브랜치로 분리했다. 사용자에게 정확한 저장소·브랜치4개 전송 승인을 받은 후 davidpro08/Graduation-project에 일반 푸시하고 아래 PR을 게시했다. 각 PR에 변경·검증·남은 한계·기반 의존성을 기재했다. 병합은 실행하지 않았다.
+
+| PR | 브랜치 | 기반 |
+| --- | --- | --- |
+| [#7 분석 복구·일정 추정](https://github.com/davidpro08/Graduation-project/pull/7) | codex/m3/analysis-resilience | codex/m3/jev-routing (#5) |
+| [#8 페르소나·조사·최종 문서](https://github.com/davidpro08/Graduation-project/pull/8) | codex/m3/persona-research | codex/m3/analysis-resilience (#7) |
+| [#9 학교 AI 실행·재연결](https://github.com/davidpro08/Graduation-project/pull/9) | codex/m3/school-ai-runtime | codex/m3/persona-research (#8) |
+| [#10 상세50·JEV50·인원 설정](https://github.com/davidpro08/Graduation-project/pull/10) | codex/m3/persona-budget | codex/m3/school-ai-runtime (#9) |
+
+병합 순서는 기존 #5 → #7 → #8 → #9 → #10이다. GitHub 연결 도구의 PR 생성이403으로3회 실패해 추가 재시도를 중단하고, 동일 저장소 소유자의 기존 GitHub CLI 인증으로 게시했다. 비밀 키 패턴 일치0·인덱스 공백 검사·SSH 구문 검사를 확인했다. 코드 검증은 직전141개 테스트·백엔드 빌드·양쪽lint·프론트 타입 검사 결과를 재사용했으며 게시 작업에서 모델/DB/브라우저 검증을 반복하지 않았다. 실제.env·키·.tmp·스크린샷·생성된 next-env.d.ts는 커밋에서 제외했다.
+
+## 페르소나 의견 인원 설정 · 2026-11-03
+
+검증: 백엔드141개 테스트·빌드·양쪽lint·프론트 TypeScript 검사·점검 스크립트 구문·diff 공백 검사 통과. 기본 후보200→상세50/JEV50·100명 집계,20/180 설정 복원, 희소 표본 배정, 한쪽0·미사용 의견 모델 검사 생략, 인원 설정 오류 거절을 확인했다. 로컬 Git 제외.env에도50/50을 추가했다. 실제 학교 추론·로그인 브라우저·Docker 기동 검증은 실행하지 않았다.
+
+사용자 요청으로 기본 전체 인원을100명(상세50·JEV50)으로 변경했다. 루트.env의 PERSONA_DETAIL_COUNT와 PERSONA_JEV_COUNT를 서비스 생성 시 읽고 검증하며 합계1~200명, 각0~200명을 허용한다. 값이 없으면 각50명이고 잘못된 값은 서버 시작을 거절한다. 변경 후 백엔드 재시작(Docker는 환경 재적용)이 필요하다. DB의 최대200명 표본 계약을 유지하고 받은 후보를 설정 합계로 제한한다. 동일한 배정 함수가 두 미리보기·샘플 API·실제 의견 호출·결과 target을 계산하며 희소 표본은 상세 우선이다. UI의20/180/200 고정 안내를 제거했다. 기존 결과는 재계산하지 않는다.
+
+인원 설정과 배정은 기존 persona.policy.ts의 순수 함수로 분리하고 서비스·HTTP Adapter/DI 구조를 유지했다. 새 패키지·DB 변경·학교 모델 호출·프로세스 수동 재시작·Git 커밋/푸시는 없다. 상세 검증 결과와 설정 예시는 [인원 계약](AI/persona-debates.md#의견-인원-설정--2026-11-03)을 따른다. 앞선20/180 고정 예산 기록보다 이 절이 우선한다.
+
 ## 새 학교 인스턴스 AI·SSH 복구 · 2026-11-03
 
 사용자가 지정한 `root@203.252.159.18:51772`에 기존 로컬 `~/.ssh/jev-test.pem`으로 접속했다. 새 컨테이너의 `/opt/gratta-ai`가 없어 저장소 실행 파일4개를 전송하고, 실제 마운트된 `/mnt/jev_ae63e/gratta-ai`의 모델 캐시를 재사용해 GPU·CPU venv를 복구했다. GPU vLLM0.32.0 / torch2.13.0+cu132 / Qwen3-32B-AWQ, CPU torch2.10.0+cpu / transformers5.17.0 / Qwen3-0.6B이며 모델·엔진 리비전은 기존 고정값을 유지한다. `gratta-qwen`·`gratta-jev` tmux로 기동했다.
