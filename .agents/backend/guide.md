@@ -1,14 +1,32 @@
 # 백엔드 지침
 
+## 요약 문서와200명 예산 · 2026-11-03
+
+`persona.policy.ts`가 전체200/상세20 한도를 공유하고 DB sample도200개로 제한한다. `debate.document.ts`는 대화 구간의 제한적 복구·누락 기록, `debate.context.ts`는 의견 입력 허용 필드 추출을 담당한다. 기존 인터페이스·DI·Qwen/JEV/Supabase Adapter 패턴을 재사용하며 새 의존성은 없다. 원문을 의견 입력에서 제외하는 방어를 서비스와 양쪽 어댑터에 적용했다. 백엔드102개 테스트·build·lint와 실제20+180명 실패0 실험을 통과했다. 재시작 자동 복구와 영구 저장 전체 UI 검증은 남아 있다. [현재 계약](../AI/persona-debates.md#현재-구성--2026-11-03)을 따른다.
+
+## 페르소나 조회 시간 초과 · 2026-11-03
+
+facets의57014/8초 초과를 필터 전용 비공개 정규화 캐시로 해결했다. 기존 RPC·SDK·어댑터·사용자 JWT·응답 형식은 유지한다. 시간 제한을 늘리거나 관리자 키를 추가하지 않는다. 실제 로그인 화면의 선택지·인원 미리보기 복구를 확인했다. 원본 변경 후 cache refresh 운영 절차는 [DB 기록](../database/schema.md#페르소나-선택지-시간-초과-해결--2026-11-03)을 따른다.
+
+## 모순·일정 복구 · 2026-11-02
+
+AnalysesService는 인증·DB·수명 주기를 조정하고 AnalysisRunner가 구간별 재시도·재분할·partial 결과를 관리한다. 세션/텍스트 분할과 일정 추정은 순수 함수로 분리했다. 기존 DetailAi/AnalysisRepo 인터페이스·Qwen/Supabase Adapter·DI를 유지하고 새 런타임 패키지는 없다. [최신 계약](../AI/analysis-flow.md#후보-표현대화-흐름오류-복구--2026-11-02)을 우선한다. 백엔드 재시작 후 자동 이어받기는 아직 없다.
+
+## 페르소나 논쟁 · 2026-11-02
+
+Qwen/JEV-CPU 실제 서버를 설치·연결해 운영 어댑터로 검증했다. 확률 선택지 모델은 기존 Opinion 계약에 선택적 scoreKind/optionProbabilities를 추가해 생성형 신뢰도와 구분한다. 자세한 [GPU/CPU 실험 기록](../AI/gpu-experiments.md)을 따른다. `check:persona-pipeline`은 합성 대화·실제 합성 페르소나·실제 모델과 운영 서비스를 사용하되 저장소만 메모리로 대체한다.
+
+`debates`는 논쟁 요약·문서·응답·작업을 조정하고 통계는 순수 함수, Qwen/JEV·Supabase는 인터페이스와 DI 기반 어댑터다. `personas` 모듈은 필터 선택지·수·페이지 목록·최대200명 표본 조회만 담당하며 `PersonaSource`를 논쟁 모듈과 공유한다. 모든 DB 접근은 기존 공개 키·사용자 JWT를 쓰며 페르소나 전용 관리자 키는 필요 없다. `ConversationsService.find`와 DB RPC의 명시적 소유권 확인을 함께 적용했다. DB 조회 API는 학교 모델 없이 호출할 수 있다. 기존 분석 모듈은 유지한다. [API](api.md)·[학교 연결·실행 한계](../AI/persona-debates.md)를 따른다. 새 런타임 패키지는 없다.
+
 ## 최신 분석 연결 · 2026-10-03
+
+2026-11-02 모순·일정은 대화 endDate 기준 최근 한 달만 DB 날짜 필터로 조회한다. 날짜 계산은 순수 함수로 분리하고 기존 저장소·AI Adapter/DI를 유지한다. 완료 metadata.inputRange로 실제 기간·text 수를 기록한다. [최신 기간 계약](../AI/analysis-flow.md#최근-한-달-분석--2026-11-02)이 아래 전체 대화 처리 기록보다 우선한다.
 
 `AnalysesModule`의 공개 API·작업 실행·결과 저장과 `QwenHttp`를 구현했다. [실제 계약·제한·검증](../AI/analysis-flow.md)을 우선한다. 분석 오케스트레이션, 외부 모델 Adapter, RLS 저장소 Adapter를 분리하고 인터페이스·DI로 연결했다. AuthGuard·사용자 토큰 접근을 재사용한다. 기존 대화 파일은 이동하지 않았다.
 
-## JEV 내부 연결 · 2026-10-03
+## 사전 판단 경계
 
-`ai` 기능 폴더에 설정·사용 정책·외부 호출 경계를 분리했다. `AiModule`을 AppModule에 연결하고 `JevService`를 내보낸다. `JevClient` 인터페이스와 `TypeSafeJev` 어댑터를 의존성 주입으로 연결했다. 기존 파일 이동·삭제는 없으며 별도 공개 API·모순/일정 로직·LLM 호출은 추가하지 않았다. SDK는 별도 TypeSafe API를 호출하며 학교 GPU 서버를 사용하는 라이브러리가 아니다.
-
-타입·lint·빌드·전체 29개 테스트 통과. 9개 JEV 테스트는 실제 SDK의 fetch 전송 경계만 대체하여 사용 분기·인증·모델·Noul/Choice/Score 응답 검증·시간 초과·오류 우회를 확인한다. 이후 실제 `check:jev`는 jev-1.13.0·일정 확률 0.98, `check:jev --skip`은 request-disabled를 반환했다. `check:ai-flow`는 NestJS JEV 사전 판단→직접 Qwen HTTP 상세 분석과 낮은 확률 시 생략을 합성 대화 두 건으로 실제 확인했다. 운영 LLM 서비스 어댑터·분석 API·DB 저장은 아직 없다. [계약](../AI/api.md#jev-사전-판단-실제-계약--2026-10-03)과 [연속 진단](../AI/api.md#jev와-학교-qwen-연속-진단--2026-10-03)을 따른다.
+TypeSafe JEV SDK와 백엔드 사전 판단을 제거했다. 학교 Qwen HTTP 연결은 유지하며 jev-cpu 자체 서버는 아직 연결되지 않았다. [AI 계약](../AI/api.md)을 따른다.
 
 ## 대화 업로드·통계 구현 · 2026-10-03
 
@@ -39,7 +57,6 @@ NestJS·TypeScript·Swagger를 사용하는 서버로 구성한다. 소스는 `a
 | `reflect-metadata` | 런타임 | 설치됨 | `^0.2.2` |
 | `rxjs` | 런타임 | 설치됨 | `^7.8.2` |
 | `@supabase/supabase-js` | 런타임·Auth 검증·사용자 RLS 접근 | 설치됨 | `2.117.2` |
-| `@typesafe-ai/sdk` | 런타임·JEV 구조화 판단 API | 설치됨 | `0.6.0` |
 | `@eslint/js` | 개발·검증 | 설치됨 | `^10.0.1` |
 | `@nestjs/cli` | 개발·검증 | 설치됨 | `12.0.8` |
 | `@nestjs/testing` | 개발·검증 | 설치됨 | `12.1.1` |
