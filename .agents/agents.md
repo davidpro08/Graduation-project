@@ -1,5 +1,18 @@
 # 하네스와 진행 상태
 
+## 기능별 커밋·PR 게시 · 2026-11-03
+
+학교 재연결을 f11871b, 기본50/50과 인원 설정을 d26eba7로 각각 저장했다. 인원 설정은 새 codex/m3/persona-budget 브랜치로 분리했다. 사용자에게 정확한 저장소·브랜치4개 전송 승인을 받은 후 davidpro08/Graduation-project에 일반 푸시하고 아래 PR을 게시했다. 각 PR에 변경·검증·남은 한계·기반 의존성을 기재했다. 병합은 실행하지 않았다.
+
+| PR | 브랜치 | 기반 |
+| --- | --- | --- |
+| [#7 분석 복구·일정 추정](https://github.com/davidpro08/Graduation-project/pull/7) | codex/m3/analysis-resilience | codex/m3/jev-routing (#5) |
+| [#8 페르소나·조사·최종 문서](https://github.com/davidpro08/Graduation-project/pull/8) | codex/m3/persona-research | codex/m3/analysis-resilience (#7) |
+| [#9 학교 AI 실행·재연결](https://github.com/davidpro08/Graduation-project/pull/9) | codex/m3/school-ai-runtime | codex/m3/persona-research (#8) |
+| [#10 상세50·JEV50·인원 설정](https://github.com/davidpro08/Graduation-project/pull/10) | codex/m3/persona-budget | codex/m3/school-ai-runtime (#9) |
+
+병합 순서는 기존 #5 → #7 → #8 → #9 → #10이다. GitHub 연결 도구의 PR 생성이403으로3회 실패해 추가 재시도를 중단하고, 동일 저장소 소유자의 기존 GitHub CLI 인증으로 게시했다. 비밀 키 패턴 일치0·인덱스 공백 검사·SSH 구문 검사를 확인했다. 코드 검증은 직전141개 테스트·백엔드 빌드·양쪽lint·프론트 타입 검사 결과를 재사용했으며 게시 작업에서 모델/DB/브라우저 검증을 반복하지 않았다. 실제.env·키·.tmp·스크린샷·생성된 next-env.d.ts는 커밋에서 제외했다.
+
 ## 페르소나 의견 인원 설정 · 2026-11-03
 
 검증: 백엔드141개 테스트·빌드·양쪽lint·프론트 TypeScript 검사·점검 스크립트 구문·diff 공백 검사 통과. 기본 후보200→상세50/JEV50·100명 집계,20/180 설정 복원, 희소 표본 배정, 한쪽0·미사용 의견 모델 검사 생략, 인원 설정 오류 거절을 확인했다. 로컬 Git 제외.env에도50/50을 추가했다. 실제 학교 추론·로그인 브라우저·Docker 기동 검증은 실행하지 않았다.
