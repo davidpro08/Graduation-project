@@ -1,16 +1,36 @@
 # 인프라 지침
 
+## 현재 학교 AI 서버·SSH · 2026-11-03
+
+현재 대상은 `root@203.252.159.18:51772`이며 아래51201은 이전 인스턴스다. 새 컨테이너에서 `/opt/gratta-ai`의 GPU·CPU 실행 환경을 재설치하고 영구 볼륨 `/mnt/jev_ae63e/gratta-ai`의 기존 모델을 재사용했다. 전용tmux `gratta-qwen`·`gratta-jev`와 로컬18080/18081 터널이 실행 중이다. 학교8080·기존 로컬 앱3000/5173은 변경하지 않았다.
+
+Git 제외 `.tmp/school-ai-ssh.config`에 현재 접속 정보, `.tmp/school-ai-known_hosts`에 새 호스트 키를 보관한다. `ssh -F .tmp/school-ai-ssh.config gratta-school-ai`로 저장소 루트에서 접속한다. `connect.ps1 -SshConfigFile .tmp/school-ai-ssh.config`는 같은 호스트 키 검사를 사용한다. [전체 명령](../../scripts/school-ai/README.md#현재-접속--2026-11-03)을 따른다. 로컬 키 본문이나.env를 원격에 전송하지 않았다.
+
+검증: 신규bootstrap2개ready·로컬터널2개health200·Qwen 모델ID/한국어 생성stop·JEV CPU판정/확률합1·백엔드health200. 실제 앱의200명 분석·품질평가·Docker는 재검증하지 않았다. 기존.env가 새 터널의 동일 로컬주소를 사용해 앱 재시작은 불필요했다. GPU 로딩 중 일시적OOM 경고 뒤 초기화·추론 성공을 확인했다. SSH 단절에도tmux 모델은 유지되지만 서버 재부팅·PC 재부팅 자동 복구는 구성하지 않았다.
+
+## 문서 파이프라인 로컬 실행 확인 · 2026-11-03
+
+코드 검증 후5173 프론트만 응답하고3000 백엔드는 리스너 없이 Nest 감시 프로세스만 남아 있는 상태를 확인했다. PID28156의 명령줄이 이 프로젝트의 nest start --watch이고 자식 프로세스가 없음을 확인한 뒤 해당 프로세스만 중단하고 숨김 백엔드 감시 프로세스를 재기동했다. 이어 프론트 프로세스 종료/5173 리스너 없음도 확인해 같은 포트로 숨김 Next 개발 서버를 재실행했다. 다른 Node 프로세스·학교 GPU/CPU 서버·SSH 터널은 종료하지 않았다.
+
+로컬 실행 식별자는 Git 제외 .tmp/backend-document-pipeline.json 및 frontend-document-pipeline.json에 저장하며 각 이름의 out.log/err.log에 실행 로그를 남긴다. 종료/재기동 시 JSON의 PID가 여전히 이 프로젝트의 명령인지 다시 확인해야 한다. 검증:3000/api/docs-json에서 신규 compose/research 경로 확인,3000/api/health와5173/api/health 모두200. 개발 서버 재실행으로 작업을 자동 요청하거나 과거 검토 문서를 변경하지 않았다.
+
+## 최신 GPU·JEV 설치 · 2026-11-02
+
+새 인스턴스 재구성의 표준 순서는 [AI 인스턴스 준비 절차](../AI/instance-setup.md)다. 주소·SSH포트·볼륨 경로 교체, 설치 순서, 전용tmux, 포트별 터널 전환과 검증 명령을 포함한다.
+
+현재 서버는 사용자가 지정한 root@203.252.159.18:51201이다. 기존 ~/.ssh/jev-test.pem을 사용하고 최초 호스트 키를 기록했다. 기존 키 불일치는 우회하지 않았다. Qwen3-32B-AWQ/vLLM0.32.0은127.0.0.1:8000, Meanblock/JEV-CPU/Qwen3-0.6B는 CPU 전용venv와127.0.0.1:8001을 사용한다. 원본 JEV 웹 UI의8080 공개 바인딩은 실행하지 않아 기존 코드 서버8080을 유지했다.
+
+로컬 숨김 SSH 터널18080/18081을 생성하고 Git 제외.env의 SCHOOL_AI_BASE_URL/MODEL·JEV_OPINIONS_URL을 반영했다. Docker에서는 host.docker.internal을 사용해야 하며 컨테이너 재검증은 하지 않았다. [재설치/재연결 스크립트](../../scripts/school-ai/README.md), [실제 버전·메모리·실험](../AI/gpu-experiments.md)을 따른다. 아래2026-10-03의.19:57398은 과거 서버다. GPU모델·JEV모델·서버프로세스 자동 재부팅 복구는 미구성이다.
+
 ## 실제 분석 실행 설정 · 2026-10-03
 
 긴 대화는 `ANALYSIS_TIMEOUT_MS` 기본 7,200,000ms(2시간), 1분~4시간 범위로 설정한다. Compose 환경변수 전달을 추가했다. 200구간 제한은 제거했다.
 
-Compose에 `SCHOOL_AI_BASE_URL`, `SCHOOL_AI_MODEL`, `SCHOOL_AI_API_KEY`, `JEV_SKIP_THRESHOLD`를 전달한다. [학교 터널·Docker와 로컬 주소 차이](../AI/analysis-flow.md#실행-설정)를 따른다. Docker 엔진이 꺼져 있어 컨테이너 검증은 미실행이며 로컬 프론트·Nest·SSH 터널에서 검증한다.
+Compose에 `SCHOOL_AI_BASE_URL`, `SCHOOL_AI_MODEL`, `SCHOOL_AI_API_KEY`를 전달한다. [학교 터널·Docker와 로컬 주소 차이](../AI/analysis-flow.md#실행-설정)를 따른다. Docker 엔진이 꺼져 있어 컨테이너 검증은 미실행이며 로컬 프론트·Nest·SSH 터널에서 검증한다.
 
-## JEV 설정과 학교 서버 연결 확인 · 2026-10-03
+## 학교 서버 연결 기록 · 2026-10-03
 
-사용자가 학교 서버를 다시 기동한 뒤 끊어진 로컬 터널을 재연결했다. 실제 API는 8000번에서 실행 중이며 VRAM 23,103/24,564MiB 사용을 확인했다. `check:ai-flow`로 실제 JEV와 학교 Qwen의 연속 호출을 확인했다. 서버 설치·모델 설정은 수정하지 않았다. JEV의 과금 설정·키는 사용자가 준비했고 합성 대화로만 호출했다.
-
-Compose backend에 `JEV_ENABLED=false`, `TYPESAFE_API_KEY`, `JEV_MODEL=jev-latest`, `JEV_TIMEOUT_MS=5000`를 전달한다. 실제 키는 Git 제외 `.env` 또는 프로세스 환경변수로 관리하며 프론트에는 전달하지 않는다. SDK 추가 후 Docker 사용 시 이미지를 재빌드해야 한다. 이번 변경에서 컨테이너 재빌드·실행은 하지 않았다.
+이 절은 과거 학교 Qwen 연결 확인 기록이다. TypeSafe JEV 설정과 SDK는 제거됐으며 자체 서버 jev-cpu 연결은 아직 없다.
 
 학교 서버 설정은 사용자가 수행했다. 이전 SSH 주소는 연결 거절이었고 사용자가 제공한 새 주소 `root@203.252.159.19:57398`에서 SSH와 vLLM 내부 8000번 API를 확인했다. RTX 4090 VRAM 24,564MiB 중 21,953MiB 사용, `/v1/models`의 실제 모델 ID는 `Qwen/Qwen3-32B-AWQ`였다. 모델 설치·기동 설정·버전은 변경하지 않았다.
 
@@ -141,3 +161,13 @@ Compose frontend에 같은 두 공개 환경변수를 전달하고 public/ 자�
 Google 기본 로그인 권한은 openid·userinfo.email·userinfo.profile이다. 이 권한만 요청하는 경우 Testing 상태의 테스트 사용자 제한 예외가 적용된다. 학교·회사 계정의 관리자 정책은 별도로 확인한다. Google JavaScript origin은 http://localhost:5173, 제공자 callback은 원격 Supabase HTTPS 주소, Supabase Redirect URL은 http://localhost:5173/auth/callback이다.
 
 비밀 값·인가 코드·원본 로그·사용자 이메일은 이 기록에 보관하지 않는다. 공식 근거: [Google Audience](https://support.google.com/cloud/answer/15549945?hl=en), [GitHub 이메일 API 권한](https://docs.github.com/en/rest/users/emails#list-email-addresses-for-the-authenticated-user), [카카오 개인 개발자 비즈 앱](https://developers.kakao.com/docs/ko/app-setting/app).
+
+## 학교 페르소나 의견 연결 준비 · 2026-11-02
+
+| 백엔드 설정 | 목적 |
+| --- | --- |
+| 페르소나 DB 조회 | 기존 SUPABASE_URL/PUBLISHABLE_KEY·사용자 JWT 사용. 추가 관리자 키 불필요 |
+| JEV_OPINIONS_URL | 학교 자체 JEV 의견 API의 완전한 URL. 미설정이면 해당 작업 실패 |
+| JEV_OPINIONS_API_KEY | 선택적 Bearer 인증 키 |
+
+기존 SCHOOL_AI_*는 논쟁 정리·상세 응답에도 사용한다. `.env.example`과 Compose backend 환경에 JEV 선택적 변수2개를 반영했으며 frontend에는 전달하지 않는다. 신규 분석·문서·조회 SQL은 Supabase에 적용했고 실제 조건 조회·권한을 검증했다. 학교 모델 전체 흐름·Docker 실행은 미검증이다. [연결 순서·제안 계약](../AI/persona-debates.md)을 따른다. 본 작업에서 공개 주소·접근 정책·운영 리소스를 변경하지 않았다.
