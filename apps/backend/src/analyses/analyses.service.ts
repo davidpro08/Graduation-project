@@ -1,3 +1,4 @@
+import { ClaimPipeline } from './claim-pipeline';
 import { BadRequestException, ConflictException, Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { AuthUser } from '../auth/auth.types';
@@ -12,7 +13,7 @@ export class AnalysesService implements OnModuleDestroy {
   private readonly active = new Map<string, AbortController>();
   private readonly workers = new Map<string, AuthUser>();
   constructor(@Inject(ANALYSIS_REPO) private readonly repo: AnalysisRepo,
-    @Inject(DETAIL_AI) private readonly ai: DetailAi, private readonly chats: ConversationsService) {}
+    @Inject(DETAIL_AI) private readonly ai: DetailAi, private readonly chats: ConversationsService, private readonly claims: ClaimPipeline) {}
   onModuleDestroy() { for (const controller of this.active.values()) controller.abort(); }
   async find(user: AuthUser, id: string) {
     let job = await this.repo.find(user, id);
@@ -57,7 +58,9 @@ export class AnalysesService implements OnModuleDestroy {
         messages.push(...batch.items.filter(message=>message.kind==='text' && message.date>=window.from && message.date<=window.to));
         if(page*batch.pageSize>=batch.total)break;
       }
-      const result=await new AnalysisRunner(this.ai).run(type,messages,signal,()=>this.repo.find(user,id));
+      const result=type==='contradiction'
+        ? await this.claims.run(user,conversationId,messages,signal,()=>this.repo.find(user,id))
+        : await new AnalysisRunner(this.ai).run(type,messages,signal,()=>this.repo.find(user,id));
       signal.throwIfAborted();
       await this.repo.complete(user,id,result.items,{...result.metadata,
         inputRange:{...window,anchor:'conversation_end',messageCount:messages.length}});

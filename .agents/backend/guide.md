@@ -1,5 +1,9 @@
 # 백엔드 지침
 
+## 명제 기반 모순 경로 · 2026-11-07
+
+AnalysesService의 contradiction을 ClaimPipeline으로 분리하고 ClaimExtractor/ClaimStore/ClaimJudge 인터페이스와 Qwen/Supabase/JEV 어댑터를 DI로 연결했다. 일정은 기존 AnalysisRunner를 사용한다. [구현·검증·한계](../AI/claims-plan.md)를 따른다.
+
 ## 요약 문서와200명 예산 · 2026-11-03
 
 `persona.policy.ts`가 전체200/상세20 한도를 공유하고 DB sample도200개로 제한한다. `debate.document.ts`는 대화 구간의 제한적 복구·누락 기록, `debate.context.ts`는 의견 입력 허용 필드 추출을 담당한다. 기존 인터페이스·DI·Qwen/JEV/Supabase Adapter 패턴을 재사용하며 새 의존성은 없다. 원문을 의견 입력에서 제외하는 방어를 서비스와 양쪽 어댑터에 적용했다. 백엔드102개 테스트·build·lint와 실제20+180명 실패0 실험을 통과했다. 재시작 자동 복구와 영구 저장 전체 UI 검증은 남아 있다. [현재 계약](../AI/persona-debates.md#현재-구성--2026-11-03)을 따른다.

@@ -13,7 +13,7 @@ function fixture(failure){
   const repo={create:async(_u,id,conversationId,analysisType)=>{const job={id,conversationId,analysisType,status:'pending',result:null,metadata:{}};jobs.set(id,job);return {...job};},find:async(_u,id)=>{if(!jobs.has(id))throw Error('deleted');return {...jobs.get(id)};},latest:async()=>null,state:async(_u,id,status,errorCode)=>{if(jobs.has(id))Object.assign(jobs.get(id),{status,errorCode});},complete:async(_u,id,items,metadata)=>Object.assign(jobs.get(id),{status:'completed',result:{items},metadata})};
   const ai={count:async()=>({count:100,limit:1200}),analyze:async()=>{calls++;if(failure)throw new AnalysisError(failure);return {items:[{summary:'담당 발언 모순 가능성',evidenceMessageIds:messages.map(m=>m.id)}],model:'synthetic'};}};
   const chats={find:async()=>({endDate:'2026-10-01'}),messages:async()=>({items:messages,total:2,pageSize:200})};
-  return {service:new AnalysesService(repo,ai,chats),jobs,repo,ai,chats,get calls(){return calls;}};
+  return {service:new AnalysesService(repo,ai,chats,{run:(_user,_conversation,messages,signal,before)=>new (require('../dist/analyses/analysis-runner').AnalysisRunner)(ai).run('contradiction',messages,signal,before)}),jobs,repo,ai,chats,get calls(){return calls;}};
 }
 async function completed(f,type='contradiction'){const job=await f.service.create(user,randomUUID(),type);for(let i=0;i<100;i++){const current=await f.service.find(user,job.id);if(!['pending','processing'].includes(current.status))return current;await new Promise(resolve=>setTimeout(resolve,5));}throw Error('worker timeout');}
 

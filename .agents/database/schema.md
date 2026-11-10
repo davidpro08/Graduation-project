@@ -1,5 +1,9 @@
 # DB 스키마와 원격 상태
 
+## 메시지 명제 캐시 · 2026-11-07
+
+로컬 신규 migration 20261107000000_message_claims.sql에 message_claims 테이블·messages 복합 unique·payload CHECK·원문 검사 trigger·본인 RLS를 추가했다. 기본키는 message_id/extractor_version, 원문 해시로 입력 변화를 감지한다. original_text는 저장 시 필수이며 원문과 일치해야 한다. 격리 PostgreSQL 엔진에서 권한/위조/연쇄 삭제를 검증했다. 원격 미적용. [설계·검증](../AI/claims-plan.md)을 따른다.
+
 ## 최종 판단 문서 JSON 확장 · 2026-11-03
 
 기존 persona_debates.document JSON에 markdown, markdownEdited, researchUpdated, basedOn:{id,revision}을 선택 필드로 추가한다. research에는 queryResults(검색어별 출처/누락/오류), enrichment(정리 상태·시도 수·오류 코드), sources[].queries와 findings[].snippetId를 저장할 수 있다. researchReviewed는 PATCH 입력에서만 사용하고 저장 필드로 삼지 않는다.
