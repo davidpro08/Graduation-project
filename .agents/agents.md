@@ -1,5 +1,9 @@
 # 하네스와 진행 상태
 
+## SemIF CUDA 설정 보존 · 2026-11-10
+
+PR #11 기반으로 JEV-CPU 브리지의 SemIF CUDA 전환 설정을 보존한다. 서버 health와 합성 SemIF CPU/GPU 벤치마크를 확인했으며, JEV-CPU와 동일 입력 비교 및 추론 중 CPU 사용량 측정은 남았다. 상세: [SemIF GPU](AI/semif-gpu.md), [비교 기록](../semif-jev-cpu-comparison.md).
+
 ## 명제 분석 PR 사전 검증 · 2026-11-10
 
 사용자 요청으로 최신 PR #10 head e0119f5를 재확인했다. 백엔드 빌드·147개 테스트, 양쪽 lint·프론트 타입 검사, 격리 PGlite 스키마/RLS·브리지5개 테스트 통과. 실제 Supabase message_claims는 PGRST205로 미적용이며 실제 DB 전체 경로는 미검증이다. Supabase 업데이트를 명시한 PR 설명 초안을 .tmp/claims-pr-description.md에 준비했다. 사용자 기존 지시에 따라 커밋·PR 게시 전 검토 대기.
