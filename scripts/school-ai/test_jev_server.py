@@ -51,5 +51,23 @@ class JevContractTests(unittest.TestCase):
                 prepare_row({**self.payload, "persona": persona})
 
 
+
+
+class ClaimPairTests(unittest.TestCase):
+    def test_pair_contract_and_classification(self):
+        from jev_server import prepare_claim_pair, present_result, CLAIM_OPTIONS
+        reference = {"message": {"id": "a", "text": "제출한다"}, "claim": {"evidence": "제출한다", "subject": None, "predicate": "제출하다", "object": None, "polarity": "positive", "qualifiers": []}}
+        payload = {"version": "claim-pair-v1", "left": reference, "right": copy.deepcopy(reference)}
+        row = prepare_claim_pair(payload)
+        for index, verdict in enumerate(CLAIM_OPTIONS):
+            probabilities = [0.1, 0.1, 0.1]
+            probabilities[index] = 0.8
+            result = present_result(row, {"option_ids": CLAIM_OPTIONS, "probabilities": probabilities}, {"engine_revision": "a" * 40, "brain_revision": "b" * 40})
+            self.assertEqual(result["verdict"], verdict)
+        payload["right"]["claim"]["evidence"] = "없는 원문"
+        with self.assertRaises(ValueError):
+            prepare_claim_pair(payload)
+
+
 if __name__ == "__main__":
     unittest.main()

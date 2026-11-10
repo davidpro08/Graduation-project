@@ -1,5 +1,9 @@
 # 학교 GPU에서 Qwen 실행
 
+## 현재 접속 · 2026-11-07
+
+현재 서버는 root@203.252.159.20:57076, 키는 이 PC의 Downloads/dont.pem이다. 저장소 루트에서 `ssh -F .tmp/school-ai-ssh.config gratta-school-ai`로 접속한다. 기본 OpenSSH known_hosts로 호스트 키를 검증한다. 아래11월3일 주소는 이전 인스턴스다. 실행 경로 /opt/gratta-ai와 캐시 /mnt/jev_ae63e/gratta-ai, 전용tmux gratta-qwen/gratta-jev를 사용한다. 로컬18080→원격8000,18081→8001 터널을 열고 양쪽 health200을 확인했다. jev_server.py는 기존 페르소나 요청에 더해 `/v1/claim-pair`의 claim-pair-v1 요청을 지원한다. 두 명제와 원문을 넣어 contradiction/compatible/unknown 선택 확률을 반환한다. 합성 명제 추출/판단1쌍 확인, DB 적용은 별도다.
+
 새 인스턴스를 처음부터 준비할 때는 [.agents/AI/instance-setup.md](../../.agents/AI/instance-setup.md)의 단계별 명령을 따른다. 이 문서는 개별 스크립트의 책임과 실행 예시를 설명한다.
 
 ## 현재 접속 · 2026-11-03

@@ -1,5 +1,9 @@
 # AI 연결 계약과 분석 HTTP 초안
 
+## 모순 명제 파이프라인 · 2026-11-07
+
+모순은 명제 추출/영속화 후 JEV claim-pair-v1으로 판단하며 일정은 기존 Qwen 경로다. 사용자 스키마·DB 캐시·세 분류·오류·배포 조건·검증은 [명제 계약](claims-plan.md)을 따른다. 아래 모든 구간을 Qwen으로 직접 모순 분석한다는 기록은 이전 구현이다.
+
 ## 최종 마크다운 입력 계약 · 2026-11-03
 
 새 문서의 markdown을 사용자가 편집·저장·확정하면 opinionContext가 {question,proposition,context,documentFormat:'markdown',answerSchema,evidenceMessageIds:[]}로 제한한다. context는 확정 문서 문자열과 정확히 같으며 중복 정제에도 보존된다. 실제 Qwen/JEV 요청의 question은 context 문서 안의 질문을 따르도록 지정한다. 원래 제목·facts·검색 요약·대화 원문을 추가 판단 근거로 다시 보내지 않는다. 기존 answerSchema가 응답 수집 형식이다. 최종 문서의 사실/조건 판단과 선택지 분류를 구분한다.

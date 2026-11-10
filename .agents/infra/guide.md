@@ -1,5 +1,13 @@
 # 인프라 지침
 
+## 학교 인스턴스 203.252.159.20 연결 · 2026-11-07
+
+현재 SSH는 root@203.252.159.20:57076이며 로컬 Downloads/dont.pem을 사용한다. .tmp/school-ai-ssh.config를 갱신했으며 기본 OpenSSH known_hosts에 새 호스트 키를 accept-new로 등록했다. 이전 사용자 지정 known_hosts 설명은 과거 구성이다. 원격 /opt/gratta-ai에 실행파일4개를 전송하고 /mnt/jev_ae63e/gratta-ai 캐시를 재사용했다. Qwen vLLM0.32.0/torch2.13.0+cu132, JEV torch2.10.0+cpu/transformers5.17.0. gratta-qwen/gratta-jev tmux, 원격127.0.0.1:8000/8001, 로컬18080/18081 health200. 실행 로그는 /opt/gratta-ai/qwen.log 및 jev.log, 터널 기록은 .tmp/school-ai-tunnel-{18080,18081}.json이다. GPU 로딩 중 allocator OOM 경고가 있었으나 초기화·실제 추론 성공을 확인했다. 기존8080 서비스 유지. 재부팅 자동 복구는 구성하지 않았다. 로컬.env에 JEV_CLAIMS_URL 추가. 백엔드 자동 재시작 명령은 blocked by policy로 거절돼 미실행이며 현재 웹/백엔드는200을 유지한다.
+
+## 로컬 개발 서버 실행 · 2026-11-07
+
+사용자 요청으로 숨김 Nest watch·Next webpack 개발 서버를 실행했다. localhost:5173 화면, 3000/api/health, 5173/api/health 모두 HTTP200 확인. 프로세스 기록은 Git 제외 .tmp/local-dev-processes.json, 로그는 .tmp/{backend,frontend}-dev.{out,err}.log에 있다. 최초 백엔드 컴파일 중 프록시 연결 실패는 기동 후 해소됐다. 로컬18080/18081 AI 터널 리스너 없음. 새 모순 분석의 실제 실행에는 학교 Qwen/JEV 연결과 신규 DB migration·JEV 브리지 배포가 필요하며 이번에는 수행하지 않았다. 커밋/PR/푸시 없음.
+
 ## 현재 학교 AI 서버·SSH · 2026-11-03
 
 현재 대상은 `root@203.252.159.18:51772`이며 아래51201은 이전 인스턴스다. 새 컨테이너에서 `/opt/gratta-ai`의 GPU·CPU 실행 환경을 재설치하고 영구 볼륨 `/mnt/jev_ae63e/gratta-ai`의 기존 모델을 재사용했다. 전용tmux `gratta-qwen`·`gratta-jev`와 로컬18080/18081 터널이 실행 중이다. 학교8080·기존 로컬 앱3000/5173은 변경하지 않았다.

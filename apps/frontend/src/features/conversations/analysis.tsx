@@ -16,6 +16,13 @@ function failureMessage(code:string|null){
   switch(code){
     case 'ANALYSIS_TOO_LARGE':return '이전 분석의 대화 분량 제한에 걸렸습니다. 다시 분석해 주세요.';
     case 'ANALYSIS_TIMEOUT':return '분석 시간이 제한을 초과했습니다. 긴 대화는 시간이 오래 걸릴 수 있습니다.';
+    case 'CLAIM_PAIR_LIMIT':return '비교할 주장 쌍이 현재 처리 한도를 넘었습니다. 처리 한도 조정이 필요합니다.';
+    case 'CLAIM_RESULT_LIMIT':return '모순 후보가 저장 한도를 넘었습니다. 분석 범위나 저장 한도 조정이 필요합니다.';
+    case 'CLAIM_STORAGE_ERROR':return '추출한 주장을 저장하거나 불러오지 못했습니다. 저장 서비스 상태를 확인해 주세요.';
+    case 'AI_INVALID_CLAIMS':return '추출한 주장 형식이나 근거가 원문과 일치하지 않습니다. 다시 분석해 주세요.';
+    case 'JEV_CLAIMS_NOT_CONFIGURED':return '모순 판단 서비스가 아직 연결되지 않았습니다.';
+    case 'JEV_INVALID_RESPONSE':return '모순 판단 응답을 검증하지 못했습니다. 다시 분석해 주세요.';
+    case 'AI_CONTEXT_ERROR':return '분석 입력이 모델의 처리 길이를 넘었습니다. 입력 분할이나 모델 설정 조정이 필요합니다.';
     case 'JOB_INTERRUPTED':return '백엔드가 재시작되어 분석이 중단됐습니다. 다시 분석해 주세요.';
     case 'AI_UNAVAILABLE':return '학교 AI 서버에 연결하지 못했습니다. 서버와 SSH 터널을 확인한 뒤 다시 분석해 주세요.';
     case 'AI_REQUEST_TIMEOUT':return '학교 AI 서버의 응답 대기 시간이 초과됐습니다. 잠시 후 다시 분석해 주세요.';

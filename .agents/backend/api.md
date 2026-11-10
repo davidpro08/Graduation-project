@@ -1,5 +1,9 @@
 # 서비스 API 설계 초안
 
+## 명제 기반 모순 분석 · 2026-11-07
+
+공개 분석 API/작업 상태/items 형식은 유지한다. contradiction은 명제 저장 후 JEV로 분류하고 schedule은 기존 구현이다. metadata.pipeline=claims-v1, extractedMessages/cachedMessages/claimCount/comparedPairs/unknownPairs/decisions/scoreKind를 추가한다. 새 실패 코드는 AI_INVALID_CLAIMS, CLAIM_STORAGE_ERROR, CLAIM_PAIR_LIMIT, CLAIM_RESULT_LIMIT, JEV_CLAIMS_NOT_CONFIGURED, JEV_INVALID_RESPONSE다. [상세 계약](../AI/claims-plan.md)을 따른다.
+
 ## 최종 문서 조합·재조사 API · 2026-11-03
 
 기존 문서 PATCH에 markdown?:string(비공백·최대10,000자), markdownEdited?:boolean, researchReviewed?:boolean을 추가했다. markdown은 공백·개행을 그대로 저장한다. researchReviewed는 재조사 자료를 검토했다는 쓰기 전용 입력이며, researchUpdated=true인 문서는 이 값과 markdown을 함께 저장해야 검토 대기가 해제된다. 단순 저장으로 새 자료 확인을 우회하지 않는다.

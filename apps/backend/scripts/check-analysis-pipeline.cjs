@@ -1,4 +1,4 @@
-// 실제 Qwen과 운영 분석 서비스를 검증한다. DB는 합성 메모리 저장소를 사용한다.
+// 실제 Qwen/JEV와 운영 분석 서비스를 검증한다. DB는 합성 메모리 저장소를 사용한다.
 require('reflect-metadata');
 const {randomUUID}=require('node:crypto');
 const {resolve}=require('node:path');
@@ -18,7 +18,13 @@ async function main(){
     const jobs=new Map();
     const repo={create:async(_user,id,conversationId,analysisType)=>{const row={id,conversationId,analysisType,status:'pending',result:null,metadata:{}};jobs.set(id,row);return {...row};},latest:async()=>null,find:async(_user,id)=>({...jobs.get(id)}),state:async(_user,id,status,errorCode)=>Object.assign(jobs.get(id),{status,errorCode}),complete:async(_user,id,items,metadata)=>Object.assign(jobs.get(id),{status:'completed',result:{items},metadata})};
     const chats={find:async()=>({endDate:'2026-10-02'}),messages:async()=>({items:messages,total:messages.length,pageSize:200})};
-    const service=new AnalysesService(repo,new QwenHttp(),chats);
+    const {ClaimPipeline}=require('../dist/analyses/claim-pipeline');
+    const {QwenClaimHttp,JevClaimHttp}=require('../dist/analyses/claim.http');
+    const {sourceHash}=require('../dist/analyses/claims');
+    const cache=new Map();
+    const key=(u,c,m)=>[u.id,c,m.id,sourceHash(m)].join(':');
+    const store={load:async(u,c,m)=>cache.get(key(u,c,m))??null,save:async(u,c,m,v)=>cache.set(key(u,c,m),v)};
+    const service=new AnalysesService(repo,new QwenHttp(),chats,new ClaimPipeline(store,new QwenClaimHttp(),new JevClaimHttp()));
     for(const type of ['contradiction','schedule']){
       const user={id:randomUUID(),token:'synthetic'};const started=performance.now();
       const job=await service.create(user,randomUUID(),type);

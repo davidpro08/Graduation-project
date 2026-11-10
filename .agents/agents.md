@@ -1,5 +1,21 @@
 # 하네스와 진행 상태
 
+## 명제 분석 PR 사전 검증 · 2026-11-10
+
+사용자 요청으로 최신 PR #10 head e0119f5를 재확인했다. 백엔드 빌드·147개 테스트, 양쪽 lint·프론트 타입 검사, 격리 PGlite 스키마/RLS·브리지5개 테스트 통과. 실제 Supabase message_claims는 PGRST205로 미적용이며 실제 DB 전체 경로는 미검증이다. Supabase 업데이트를 명시한 PR 설명 초안을 .tmp/claims-pr-description.md에 준비했다. 사용자 기존 지시에 따라 커밋·PR 게시 전 검토 대기.
+
+## 학교 AI 서버 연결 · 2026-11-07
+
+사용자가 제공한 root@203.252.159.20:57076과 로컬 Downloads/dont.pem으로 접속했다. 새 인스턴스의 /opt/gratta-ai 환경을 기존 /mnt/jev_ae63e/gratta-ai 캐시로 복구하고 Qwen/JEV tmux 및 로컬18080/18081 터널을 기동했다. 양쪽 health·웹/백엔드 health200, 합성2문장의 명제2개→JEV 비교1쌍→모순 후보1개(18043ms)를 확인했다. 메모리 저장소 실험이며 DB 영속화/전체 품질 검증이 아니다. message_claims는 REST 조회PGRST205로 아직 없음. 신규 JEV_CLAIMS_URL은 로컬.env에 추가했지만 백엔드 종료/재시작 명령이 자동 검토에서 blocked by policy로 거절되어 현 프로세스는 유지했다. DB 적용과 백엔드 재시작이 남는다. 커밋/PR/푸시 없음.
+
+## 로컬 개발 서버 실행 · 2026-11-07
+
+사용자 요청으로 숨김 Nest watch·Next webpack 개발 서버를 실행했다. localhost:5173 화면, 3000/api/health, 5173/api/health 모두 HTTP200 확인. 프로세스 기록은 Git 제외 .tmp/local-dev-processes.json, 로그는 .tmp/{backend,frontend}-dev.{out,err}.log에 있다. 최초 백엔드 컴파일 중 프록시 연결 실패는 기동 후 해소됐다. 로컬18080/18081 AI 터널 리스너 없음. 새 모순 분석의 실제 실행에는 학교 Qwen/JEV 연결과 신규 DB migration·JEV 브리지 배포가 필요하며 이번에는 수행하지 않았다. 커밋/PR/푸시 없음.
+
+## 명제 기반 모순 분석 리팩토링 · 2026-11-07
+
+최신 PR #10(e0119f5)과 작업 파일 일치를 확인한 뒤 Qwen 명제 추출→DB 저장/재조회→JEV 쌍별 분류를 구현했다. 사용자 지시에 따라 일정은 기존 방식 유지. 백엔드147개·Python5개·격리 DB 권한/스키마 검증 통과. 운영 DB/학교 배포·실제 품질 평가는 미실행. 기존 스테이징을 보존했고 커밋/PR/푸시는 사용자 검토 전 실행하지 않는다. 상세: [계획·구현·한계](AI/claims-plan.md).
+
 ## 기능별 커밋·PR 게시 · 2026-11-03
 
 학교 재연결을 f11871b, 기본50/50과 인원 설정을 d26eba7로 각각 저장했다. 인원 설정은 새 codex/m3/persona-budget 브랜치로 분리했다. 사용자에게 정확한 저장소·브랜치4개 전송 승인을 받은 후 davidpro08/Graduation-project에 일반 푸시하고 아래 PR을 게시했다. 각 PR에 변경·검증·남은 한계·기반 의존성을 기재했다. 병합은 실행하지 않았다.

@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Contradiction detection claims",
+  "type": "object",
+  "properties": {
+    "message_id": {
+      "type": "string"
+    },
+    "original_text": {
+      "type": "string"
+    },
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "evidence": {
+            "type": "string",
+            "minLength": 1
+          },
+          "subject": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "predicate": {
+            "type": "string",
+            "minLength": 1
+          },
+          "object": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "polarity": {
+            "type": "string",
+            "enum": [
+              "positive",
+              "negative",
+              "uncertain"
+            ]
+          },
+          "qualifiers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "evidence",
+          "subject",
+          "predicate",
+          "object",
+          "polarity",
+          "qualifiers"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "message_id",
+    "claims"
+  ],
+  "additionalProperties": false
+}
