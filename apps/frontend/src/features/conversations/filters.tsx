@@ -18,15 +18,15 @@ export function ParticipantAvatar({participant}:{participant:Participant}) {
     <AvatarFallback className="participant-avatar-fallback"><span>{Array.from(participant.name).slice(0,2).join('')}</span></AvatarFallback>
   </Avatar>;
 }
-function DatePicker({label,value,onChange,min,max}:{label:string;value?:string;onChange:(value:string)=>void;min?:string;max?:string}) {
+export function DatePicker({label,value,onChange,min,max,placeholder='전체 기간'}:{label:string;value?:string;onChange:(value:string)=>void;min?:string;max?:string;placeholder?:string}) {
   const [open,setOpen]=useState(false);const id=useId();
   return <div className="field"><span id={id} className="field-label">{label}</span><Popover open={open} onOpenChange={setOpen}>
-    <PopoverTrigger asChild><Button variant="outline" className="date-trigger" aria-labelledby={id}><CalendarDays size={18}/>{value?format(parseISO(value),'yyyy.MM.dd'):'전체 기간'}</Button></PopoverTrigger>
+    <PopoverTrigger asChild><Button type="button" variant="outline" className="date-trigger" aria-labelledby={id}><CalendarDays size={18}/>{value?format(parseISO(value),'yyyy.MM.dd'):placeholder}</Button></PopoverTrigger>
     <PopoverContent align="start" className="date-popover w-auto p-0"><Calendar mode="single" locale={ko} selected={value?parseISO(value):undefined}
-      defaultMonth={parseISO(value || min || max || format(new Date(),'yyyy-MM-dd'))} captionLayout="dropdown" startMonth={min?parseISO(min):undefined} endMonth={max?parseISO(max):undefined}
+      defaultMonth={parseISO(value || min || max || format(new Date(),'yyyy-MM-dd'))} captionLayout="dropdown" startMonth={min?parseISO(min):undefined} endMonth={max?parseISO(max):new Date(Math.max(new Date().getFullYear()+10,Number(value?.slice(0,4))||0),11)}
       disabled={[...(min?[{before:parseISO(min)}]:[]),...(max?[{after:parseISO(max)}]:[])]}
       onSelect={date=>{onChange(date?format(date,'yyyy-MM-dd'):'');setOpen(false);}}/>
-      <Button variant="ghost" className="w-full" onClick={()=>{onChange('');setOpen(false);}}>날짜 조건 해제</Button></PopoverContent>
+      <Button type="button" variant="ghost" className="w-full" onClick={()=>{onChange('');setOpen(false);}}>날짜 선택 해제</Button></PopoverContent>
   </Popover></div>;
 }
 export function QueryFilters({filter,onChange,participants,startDate,endDate}:{filter:ChatFilter;onChange:(filter:ChatFilter)=>void;participants:Participant[];startDate:string;endDate:string}) {

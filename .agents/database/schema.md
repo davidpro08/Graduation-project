@@ -1,5 +1,117 @@
 # DB 스키마와 원격 상태
 
+## 최종 판단 문서 JSON 확장 · 2026-11-03
+
+기존 persona_debates.document JSON에 markdown, markdownEdited, researchUpdated, basedOn:{id,revision}을 선택 필드로 추가한다. research에는 queryResults(검색어별 출처/누락/오류), enrichment(정리 상태·시도 수·오류 코드), sources[].queries와 findings[].snippetId를 저장할 수 있다. researchReviewed는 PATCH 입력에서만 사용하고 저장 필드로 삼지 않는다.
+
+새 테이블·컬럼·인덱스·마이그레이션·원격 SQL·권한 변경은 없다. 기존 owner_id·RLS와 revision의 낙관적 잠금을 유지한다. 재조사는 원래 review 행을 덮어쓰지 않고 새 작업을 만든다. 실제 의견에 쓴 최종 문서는 해당 작업의 document와 result.topic.context에 남으며 documentFormat=markdown으로 표시한다. 오래된 문서는 optional 필드 없이 읽는다.
+
+## 페르소나 표본200명·문서 요약 · 2026-11-03
+
+현재 sample 상한을500→200으로 바꿨다. 로컬 CLI 생성 `20261102153204_persona_analysis_budget.sql` → 원격 `20261102153710_persona_analysis_budget`. 기존 캐시 기반 쿼리와 제한된 DEFINER·소유권·권한을 유지하며 상한만 변경했다. PGlite11종·seed·200명·접근 차단과 실제 authenticated/8초의200명·모집단50000을 롤백 검증했다. 새로운 테이블/컬럼/권한은 없다.
+
+기존 persona_debates.document JSON에 summary·sourceCoverage·warnings를 저장한다. 과거 문서는 context를 사용하며 결과 topic에는 원문·화자·근거 ID를 전달하지 않는다. 저장된 과거500명 결과는 유지한다. 아래 캐시의500명 성능 측정은 예산 변경 전 기록이다.
+
+## 페르소나 선택지 시간 초과 해결 · 2026-11-03
+
+실제 로그인 화면의 facets 조회 실패를 재현했다. DB/5만 원본/조회 함수는 정상이었으나, 기존 facets가5만 행의 대형 details JSON을 매번 해석·JSON 변환해 authenticated의 statement_timeout=8s에서57014로 취소됐다. 백엔드는 이를 일반 DB 연결/마이그레이션 오류로 표시했다. 학교 AI·SSH 연결은 이 조회에 관여하지 않는다.
+
+| 변경 | 구현 |
+| --- | --- |
+| 필터 전용 저장 | 비공개 materialized view `app_private.persona_filter_cache`. UUID·나이·11종 정규화 특성만 저장하며 persona 본문·전체 details는 복제하지 않음 |
+| JSON 해석 | 캐시 준비 시 jsonb_to_record로 details의3개 특성을 한 번에 추출 |
+| 조회 | 기존 INVOKER persona_filter_rows가 캐시를 읽음. facets는 정적 VALUES로 범주를 집계하고 count/browse/sample의 필터도 캐시에서 먼저 적용 |
+| 본문 | 선택된 최대500명에 대해서만 기존 원본을 조인 |
+| 권한 | 캐시/기존 view의 PUBLIC·anon·authenticated 직접 접근·갱신 금지. 기존 본인 대화 확인 및 제한된 DEFINER/공개 INVOKER wrapper 유지 |
+| 성능 | 같은 facets의 DB 실행764.02ms. 캐시50000행·인덱스 포함14032896바이트. 8초 제한을 늘리지 않음 |
+
+로컬 `20261102150331_persona_filter_cache.sql` → 원격 `20261102150613_persona_filter_cache` 적용. 격리 PGlite에서11종·AND/OR·seed·500명·이름·직업 검색/페이지·시군구·입력 검증·직접 읽기/refresh 차단을 통과했다. 실제 authenticated 역할의8초 제한 안에서 facets/count/sample500을 확인 후 롤백했다. 원본/캐시 모두50000행, 기존 보안 advisor INFO/WARN만 유지했다. 실제 로그인 화면에서 조건 다시 불러오기로 필터·50000명/상세50+JEV450 미리보기가 복구됐으며, 사용자가 선택한 연령 조건의15705명 미리보기도 확인됐다. 사용자 입력·선택을 초기화하거나 새 분석을 시작하지 않았다.
+
+원본은 현재 고정 합성 데이터셋이다. 관리자가 원본을 추가·수정·삭제한 뒤에는 아래 갱신도 수행해야 필터 스냅샷이 반영된다. 사용자용 갱신 API/추가 관리 키는 없다. UNIQUE id 인덱스가 있으므로 이미 채운 캐시는 동시 조회를 유지하며 갱신할 수 있다. [PostgreSQL REFRESH](https://www.postgresql.org/docs/17/sql-refreshmaterializedview.html)를 따른다.
+
+```sql
+REFRESH MATERIALIZED VIEW CONCURRENTLY app_private.persona_filter_cache;
+```
+
+## 모순·일정 부분 결과 저장 · 2026-11-02
+
+`complete_analysis`는 coverage=partial이면 기존 proposed를 보존하고 같은 제목·원문 표현·근거 배열의 후보를 중복 추가하지 않는다. complete/과거 metadata는 기존처럼 proposed를 교체한다. confirmed는 항상 보존하며 작업 완료의 멱등성·근거 소유권·INVOKER·빈 search_path·기존 권한을 유지한다. 신규 컬럼/정책은 없다. 일정 추정은 analysis_jobs.result.items[].suggestion에 저장하고 schedules.item_index로 연결한다. 모순 제목도 result JSON에 저장한다.
+
+로컬 Supabase CLI3.0.0으로 생성한 `20261102140934_analysis_resilience.sql`은 원격 `20261102141515_analysis_resilience`로 적용됐다. 기존 파일 이동이나 원격 이력 수정은 하지 않았다. 격리 PGlite와 원격 롤백 테스트에서 후보 보존/중복/전체 재분석 교체·확정 일정·제목/추정 JSON·멱등성·INVOKER/anon 차단을 검증했다. 원격은 기존 소유자 ID를 SQL 내부에서만 재사용해 합성 대화를 만들고 모두 롤백했으며 합성 대화 잔존0건이다. 새 Auth 계정·실제 대화 본문·토큰은 만들거나 읽지 않았다. 보안 advisor 신규 지적은 없고 기존 원본 정책 없음 INFO·유출 비밀번호 보호 WARN만 유지한다.
+
+## 현재 페르소나 조회 연결 · 2026-11-02
+
+5만 원본을 유지하고 기본6종·고급5종 필터와 사용자 JWT 조회 API를 구현했다. 아래 과거의 신규 SQL 미적용·서버 키 필요·이름 부재 기록은 이전 상태다. 현재 `PersonasModule`은 `public.query_persona_data(conversation UUID, action text, filters JSONB={}, options JSONB={})`를 호출하며 service_role/관리자 키를 사용하지 않는다. [HTTP 계약](../backend/api.md)을 따른다.
+
+| 객체 | 현재 권한·역할 |
+| --- | --- |
+| `persona_data.korean_personas` | 기존50000건·RLS 유지, anon/authenticated 직접 읽기 불가 |
+| `app_private.persona_filter_rows` | 필터 전용 캐시를 읽는 INVOKER view, 일반 역할 직접 읽기 불가 |
+| `app_private.persona_filter_cache` | UUID·나이·11종 정규화 특성의 비공개 스냅샷. 본문/details 전체는 저장하지 않으며 관리자 원본 변경 후 refresh 필요 |
+| `app_private.query_persona_data` | 빈 search_path의 제한된 DEFINER. auth.uid 비어 있음/대화 소유자 불일치 시42501. 허용 action·filter·option·길이·상한 검증 후 정적 SQL 조회 |
+| `public.query_persona_data` | INVOKER wrapper, PUBLIC/anon 실행 취소·authenticated 실행만 허용 |
+| `public.persona_debates` | 문서·revision·상태·결과 저장. 본인 RLS·소유권 복합FK·중복 활성 작업 차단 |
+
+`facets`는 원본 범주·직업 검색50개·선택 시도의 시군구를 반환한다. `count`는 수만 계산하고 본문은 반환하지 않는다. `browse`는 UUID 순서 최대50개, `sample`은 MD5(seed:uuid) 순서 최대200개다. SQL에 입력 문자열을 연결하지 않는다. 이름은 본문 `^([가-힣]{2,6}) 씨`에서 추출하며 원본5만 건에서 확인했다. 소득/취미/국적 필터는 제공하지 않는다. private schema USAGE와 해당 함수 EXECUTE 외에는 추가 원본 권한을 주지 않았고 기존 private 프로필 함수의 접근 제한을 유지했다.
+
+| 로컬 SQL | 실제 원격 적용 버전 |
+| --- | --- |
+| `20261102002606_persona_debates.sql` | `20261102050901_persona_debates` |
+| `20261102004905_debate_documents.sql` | `20261102050921_debate_documents` |
+| `20261102045839_persona_query_api.sql` | `20261102050929_persona_query_api` |
+| `20261102150331_persona_filter_cache.sql` | `20261102150613_persona_filter_cache` |
+
+MCP apply_migration의 자동 버전으로 기록됐다. 로컬 파일 이동·원격 이력 덮어쓰기는 하지 않았다. 이 문서에 적용 완료로 기록한 SQL을 `db push`로 다시 적용하면 안 된다. 기존 분석/일정 SQL의 버전 차이도 있으므로 CLI 배포 전 이력 대응을 별도 검토한다.
+
+격리 PGlite에서 `tests/personas.sql`의11종·AND/OR·동일 seed·500개/페이지 중복·원본 이름·직업 문자 그대로 검색·시군구 범위·입력 검증·권한을 통과했다. 원격은 기존 대화 소유자 ID를 SQL 트랜잭션 내부에서만 JWT claim에 넣고 authenticated 역할로 실행했다. 50000/445/9 및500명 고유성·재현·시도17·직업 검색·타인/비로그인/직접 접근 차단을 검증 후 롤백했다. 개인 대화 본문·토큰은 읽거나 출력하지 않았고 테스트 계정/행을 만들지 않았다. 실제 브라우저 OAuth→HTTP→DB 전 구간은 미실행이다.
+
+보안 advisor의 신규 지적 없음. 기존 원본 RLS 정책 없음 INFO와 Auth 유출 비밀번호 보호 비활성 WARN 유지. 성능 advisor는 미사용 인덱스 INFO만 있으며 신규 FK/보안 문제는 없다. [RLS 안내](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy), [기존 Auth 설정 안내](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
+
+## 필터 후보 실측 검토 · 2026-11-02 (구현 전 기록)
+
+사용자 요청으로 전체5만 건의 범주·빈 값·details 타입·조합별 건수를 읽기 전용으로 확인했다. 제안한 기본6종·고급5종은 위 현재 구현에 반영했다. [분포·제안·매핑 문제](persona-filters.md)를 참조한다.
+
+주요 발견: 직업2,120종 중2,008종은50명 미만, 혼인4·학력7·가족39·주거6범주. 소득 없음, 국가 고정. 취미/기술 목록은 모두 실제 JSON 배열이 아닌 문자열이다. 별도 이름 컬럼은 없으나 본문에 합성 이름이 있어 이전 이름 부재 안내를 정정했다. 현재 지도 별칭이 받지 못하는 지역 원문5개도 확인했으며 수정은 후속 작업이다.
+
+## 프로젝트 재활성화 후 조회 확인 · 2026-11-02
+
+사용자가 무료 프로젝트를 재활성화한 후 MCP로 `ACTIVE_HEALTHY`와 실제 조회 성공을 확인했다. 페르소나50,000건·시도17개, 서울 거주 여성4,660명, 해당 조건에서 seed 정렬 후 최대500명 선택 조회가 성공했다. 개인 대화·인증 사용자 데이터는 조회하지 않았다.
+
+`public.persona_debates`, `persona_debate_facets()`, `sample_debate_personas(jsonb,text,boolean)`는 아직 없다. 로컬 `.env`에는 공개 Supabase 설정만 있고 `SUPABASE_PERSONA_SECRET_KEY`가 없다. 관리 연결을 통한 원본 조회 성공과 앱의 RPC 연동 완료를 구분한다. 이번 재연결은 읽기 전용이며 신규 SQL 적용·권한 변경·키 생성은 하지 않았다. 아래 원격 접근 실패 기록은 재활성화 이전 상태다.
+
+## 검토 문서와 분석별 기록 추가 · 2026-11-02
+
+CLI로 생성한 `20261102004905_debate_documents.sql`을 앞선 persona_debates SQL 뒤에 적용한다. 로컬 준비만 했으며 원격 적용은 대기다. 기존 결과·RLS·FK·활성 작업 인덱스를 유지한다.
+
+| 추가/변경 | 내용 |
+| --- | --- |
+| document | nullable JSONB 객체. 질문·맥락·쟁점·예상 찬반 논리·실제 발언 근거 |
+| revision | 0 이상 integer, 문서 생성 완료1, 수정 시 증가. 수정과 실행의 WHERE 조건으로 동시 변경 차단 |
+| speaker_ids | 최대400개 JSONB 배열, 초기 문서 조사에 포함할 실제 대화 참여자 ID |
+| review 상태·stage | 문서 검토 대기. document non-null·revision>0 제약. 아직 활성 추론 작업이 아니므로 진행 중 인덱스에 포함하지 않음 |
+
+사용자 토큰으로 owner_id/id/status/revision을 동시에 조건화해 수정·실행을 원자적으로 선점한다. 임시 PostgreSQL에서 문서 없는 review 거절·버전 비교 수정·이전 버전 덮어쓰기0건·중복 실행0건·기존 RLS/FK/연쇄 삭제 검증을 통과했다.
+
+## 페르소나 논쟁 SQL · 2026-11-02
+
+로컬 `20261102002606_persona_debates.sql`은 Supabase CLI `migration new`로 생성했다. 원격 조회3회 실패로 아직 적용하지 않았다.
+
+| 대상 | 계약 |
+| --- | --- |
+| public.persona_debates | UUID PK, conversation_id/owner_id 복합 FK·연쇄 삭제, input/filters, pending/processing/completed/failed, stage, processed/selected(0~500), error_code, result JSONB, created_at/updated_at |
+| 소유권 | authenticated 본인 SELECT/INSERT/UPDATE/DELETE, USING+WITH CHECK. anon/PUBLIC 권한 없음. 대화별 활성 작업1개 partial unique index |
+| public.persona_debate_facets() | SECURITY INVOKER, 빈 search_path, service_role만 실행. 실제 필터 값 반환 |
+| public.sample_debate_personas(jsonb,text,boolean=false) | SECURITY INVOKER, 빈 search_path, service_role만 실행. 조건 먼저 적용·seed 순서의 최대500명·전체 일치 수 반환. 미리보기는 원본 본문을 조회하지 않음 |
+| persona_data.korean_personas | 기존 일반 사용자 차단·RLS 유지. service_role에 스키마 USAGE·테이블 SELECT 부여. 사용자 데이터 접근에는 이 역할을 사용하지 않음 |
+
+기존 원본 필드에는 소득이 없어 미상이다. 검증된 `details.income_decile` 1~10을 추후 적재할 경우에만 분위로 분류한다. 별도 테이블에 전체 원본 페르소나 본문을 복사하지 않고 응답의 기본 특성만 저장한다. [흐름·제약](../AI/persona-debates.md)을 따른다.
+
+PGlite 0.5.14의 격리 PostgreSQL에서 기존 페르소나 SQL·대화 FK 선행 구조·신규 SQL과 `tests/persona-debates.sql`을 실행했다. 표본 재현·500명 상한·중복 없음·AND/OR·소득 미상/분위·빈 결과·서버 전용 RPC·타인 차단·소유자 변경 차단·복합FK·중복 활성 작업·연쇄 삭제와 롤백을 통과했다. 실제 Supabase Auth/PostgREST 검증은 미실행이다.
+
+## 최신 분석·일정 저장 · 2026-10-03
+
+`analysis_jobs`, `schedules`와 SECURITY INVOKER `complete_analysis`를 실제 프로젝트에 적용했다. 사용자 RLS·복합 FK·완료/후보 원자적 저장·근거 검증·대화 연쇄 삭제를 확인했다. [컬럼·제약·로컬/원격 마이그레이션 버전 매핑](../AI/analysis-flow.md#db)을 따른다. 신규 보안·FK 인덱스 지적 없음. 이전 미구현 분석 표는 설계 기록이다.
+
 ## 공식 문서 우선 조회
 
 - [Supabase 공식 문서](https://supabase.com/docs): Database·Auth·Storage, RLS·권한, 클라이언트·CLI 문서를 확인한다.
@@ -159,3 +271,7 @@ Storage SELECT/INSERT/DELETE 정책은 비공개 버킷과 경로의 첫 폴더�
 목록 조회용 `(owner_id,created_at,id)`, 원문용 대화·날짜·순서 및 참여자·날짜 인덱스를 추가했다. advisor가 지적한 복합 FK용 인덱스 3개도 추가했으며 재점검에서 신규 외래 키 지적은 0개다. 기존 페르소나의 정책 없음·미사용 인덱스 INFO와 Auth 유출 비밀번호 보호 비활성 WARN은 이 작업과 별개이며 변경하지 않았다.
 
 `supabase/tests/conversations.sql`을 실제 DB에서 실행해 합성 Auth 사용자 둘·대화·메시지의 import, 문자·단답·질문·야간·날짜/참여자 집계, 빈 날짜 0개, 빈 결과, 타인 SELECT/DELETE 차단, 소유자 변경 차단, 연쇄 삭제를 검증하고 롤백했다. 테스트 계정 잔존 0건이다. 실제 Storage API 업로드·다운로드 전체 검증은 미실행이다.
+
+## 일정 종료 시각 · 2026-10-03
+
+`schedules.ends_at`은 nullable timestamptz다. DB CHECK는 종료 시각이 있으면 starts_at이 있고 ends_at > starts_at임을 강제한다. RLS와 기존 완료 RPC는 유지한다. 로컬 `20261003124739_schedule_end_time.sql`은 원격 MCP 이력 `20261003124914_schedule_end_time`으로 적용됐다. 상대 날짜 제안은 근거 메시지 조회 시 계산하며 DB에 자동 확정하지 않는다. 실제 SQL 테스트에서 정상 종료 저장과 역전 제약 거절을 확인했다.

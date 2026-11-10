@@ -54,6 +54,7 @@ export class ConversationsService {
   async messages(user: AuthUser,id: string,filter: ChatFilter) {
     return this.safe(async()=>{await this.repo.find(user,id);return this.repo.messages(user,id,filter);});
   }
+  selectedMessages(user:AuthUser,id:string,ids:string[]){return this.safe(async()=>{await this.repo.find(user,id);if(ids.length>20||new Set(ids).size!==ids.length)throw new BadRequestException('대화는 중복 없이 최대20개 선택할 수 있습니다.');const rows=await this.repo.selectedMessages(user,id,ids);if(rows.length!==ids.length)throw new BadRequestException('현재 대화에 속한 텍스트 발언만 선택할 수 있습니다.');return rows;});}
   async statistics(user: AuthUser,id: string,filter: ChatFilter) {
     return this.safe(async()=>{await this.repo.find(user,id);return this.repo.statistics(user,id,filter);});
   }

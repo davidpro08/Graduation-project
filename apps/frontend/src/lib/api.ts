@@ -15,14 +15,14 @@ export class ApiError extends Error {
   constructor(public readonly status: number, message: string) { super(message); }
 }
 
-export async function authenticatedRequest<T>(path: string, options: { method?: string; body?: BodyInit; signal?: AbortSignal } = {}): Promise<T> {
+export async function authenticatedRequest<T>(path: string, options: { method?: string; body?: BodyInit; json?: unknown; signal?: AbortSignal } = {}): Promise<T> {
   const auth = getAuthClient().auth;
   const { data, error } = await auth.getSession();
   if (error || !data.session) throw new ApiError(401, '로그인이 필요합니다.');
   let response: Response;
   try {
-    response = await fetch(`/api${path}`, { method: options.method ?? 'GET', body: options.body, cache:'no-store',
-      headers: { Authorization:`Bearer ${data.session.access_token}` },
+    response = await fetch(`/api${path}`, { method: options.method ?? 'GET', body: options.json===undefined?options.body:JSON.stringify(options.json), cache:'no-store',
+      headers: { Authorization:`Bearer ${data.session.access_token}`, ...(options.json===undefined?{}:{'Content-Type':'application/json'}) },
       signal: options.signal ? AbortSignal.any([options.signal,AbortSignal.timeout(60000)]) : AbortSignal.timeout(60000) });
   } catch {
     if (options.signal?.aborted) throw new DOMException('요청 취소','AbortError');
@@ -36,7 +36,7 @@ export async function authenticatedRequest<T>(path: string, options: { method?: 
       response.status===413 ? '파일은 최대 10MB까지 업로드할 수 있습니다.' : typeof message==='string' ? message : '요청을 처리하지 못했습니다. 입력 내용을 확인해 주세요.');
   }
   if (response.status===204) return undefined as T;
-  return response.json() as Promise<T>;
+  try{return await response.json() as T;}catch{throw new ApiError(502,'서버 응답 형식을 확인하지 못했습니다. 다시 조회해 주세요.');}
 }
 
 async function userRequest(method: 'GET' | 'PATCH', nickname?: string, signal?: AbortSignal): Promise<UserProfile> {
