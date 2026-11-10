@@ -5,13 +5,13 @@ const {randomUUID}=require('node:crypto');
 const {prepareDocument}=require('../dist/debates/debate.document');
 const {QwenDebateHttp,JevOpinionHttp,validateTopic}=require('../dist/debates/debate.http');
 const {DebateError}=require('../dist/debates/debate.types');
-const {PERSONA_LIMIT,DETAIL_LIMIT}=require('../dist/personas/persona.policy');
+const {PERSONA_LIMIT,personaBudget}=require('../dist/personas/persona.policy');
 const topic={question:'규칙에 예외를 둘까?',proposition:'불가피한 사정에는 예외를 두자.',context:'합성 맥락',summary:'참여자는 공정성을 유지하면서 불가피한 사정을 확인하는 기준을 논의했다.',keyIssues:['예외 기준'],supportingLogic:[],opposingLogic:[],evidenceMessageIds:[]};
 const row=(text='합성 대화')=>({id:randomUUID(),sequence:0,participantId:null,speaker:'합성A',kind:'text',date:'2026-11-03',time:'10:00',text});
 const chats=rows=>({messages:async(_user,_id,{page,pageSize})=>({items:rows.slice((page-1)*pageSize,page*pageSize),total:rows.length,pageSize})});
 const prepare=(ai,rows)=>prepareDocument(ai,chats(rows),{id:randomUUID(),token:'synthetic'},randomUUID(),'규칙에 예외가 필요한가?',[],new AbortController().signal,0,undefined,rows);
 
-test('분석 예산은 최대200명이며 상세20명을 우선한다',()=>{assert.equal(PERSONA_LIMIT,200);assert.equal(DETAIL_LIMIT,20);});
+test('분석 예산 상한은200명이며 기본 상세50·JEV50명이다',()=>{assert.equal(PERSONA_LIMIT,200);assert.deepEqual(personaBudget({}),{detail:50,jev:50,total:100});});
 
 test('문서 생성의 일시적 근거 오류를 재시도하고 핵심 요약을 보존한다',async()=>{
   const rows=[row()];let calls=0;

@@ -15,6 +15,6 @@ export class PersonasController {
   preview(@CurrentUser() user: AuthUser, @Param('id', uuid) id: string, @Body() body: FilterBody) { return this.service.preview(user, id, body.filters ?? {}); }
   @Post('search') @HttpCode(200) @ApiOperation({ summary: '실제 페르소나 프로필·요약 목록, 최대50개씩' })
   search(@CurrentUser() user: AuthUser, @Param('id', uuid) id: string, @Body() body: SearchPersonasDto) { return this.service.search(user, id, body.filters ?? {}, body.page, body.pageSize); }
-  @Post('sample') @HttpCode(200) @ApiOperation({ summary: '필터 적용 후 중복 없이 최대200명 선택, 같은 seed 재현' })
+  @Post('sample') @HttpCode(200) @ApiOperation({ summary: '필터 적용 후 설정된 인원까지 중복 없이 선택, 같은 seed 재현' })
   sample(@CurrentUser() user: AuthUser, @Param('id', uuid) id: string, @Body() body: SamplePersonasDto) { return this.service.sample(user, id, body.filters ?? {}, body.seed); }
 }

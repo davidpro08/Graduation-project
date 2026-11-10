@@ -10,8 +10,10 @@ const { dimensions } = require('../dist/personas/persona.types');
 const env = resolve(__dirname, '../../../.env'); if (existsSync(env)) process.loadEnvFile(env);
 const fixturePath = process.argv[2], output = resolve(process.argv[3] || '.tmp/persona-live-report.json');
 const withJev = process.argv.includes('--with-jev');
+const { personaBudget } = require('../dist/personas/persona.policy');
+const budget = personaBudget();
 const personas = fixturePath ? JSON.parse(readFileSync(resolve(fixturePath), 'utf8').replace(/^\uFEFF/, '')) : [];
-if (!Array.isArray(personas) || !personas.length || personas.length > (withJev ? 200 : 20) || !personas.every(p => typeof p.persona === 'string' && dimensions.every(key => typeof p[key] === 'string'))) throw Error('실제 합성 페르소나 JSON 파일이 필요합니다. JEV 사용 시 최대200명, 상세 단독은 최대20명입니다.');
+if (!Array.isArray(personas) || !personas.length || personas.length > (withJev ? budget.total : budget.detail) || !personas.every(p => typeof p.persona === 'string' && dimensions.every(key => typeof p[key] === 'string'))) throw Error(`실제 합성 페르소나 JSON 파일이 필요합니다. 현재 설정은 전체 최대${budget.total}명, 상세 단독 최대${budget.detail}명입니다.`);
 const messages = [
   ['지연', '약속에 늦으면 벌금 5천 원을 내기로 했지만, 버스 사고로 늦은 경우에는 예외가 필요하다고 생각해.'],
   ['태은', '규칙을 지켜야 공정해. 불가피한 사유를 어떻게 확인할지도 먼저 정해야 해.'],
@@ -57,7 +59,7 @@ const jev = realJev ? { ready: () => realJev.ready(), respond: (...args) => meas
 const service = new DebatesService(repo, source, ai, jev, chats);
 const report = { status: 'running', startedAt: new Date().toISOString(), fixtureSha256: createHash('sha256').update(JSON.stringify(personas)).digest('hex'), source: 'DB에서 추출한 합성 페르소나, 합성 대화, 실제 Qwen' + (withJev ? '/JEV-CPU' : '') + ', 메모리 작업 저장소', personaIds: personas.map(p => p.id), timings, requests };
 async function waitUntil(id, statuses) {
-  const deadline = performance.now() + (personas.length > 20 ? 3600000 : 600000); let previous = '';
+  const deadline = performance.now() + (personas.length > budget.detail ? 3600000 : 600000); let previous = '';
   while (performance.now() < deadline) {
     const job = await service.find(user, id);
     const state = JSON.stringify({ status: job.status, stage: job.stage, processed: job.processed });
@@ -81,7 +83,7 @@ async function main() {
   const finished = await waitUntil(created.id, ['completed']);
   report.result = finished.result;
   assert.equal(finished.result.statistics.answered, personas.length);
-  assert.equal(finished.result.jevTarget, Math.max(0, personas.length - 20));
+  assert.equal(finished.result.jevTarget, Math.max(0, personas.length - budget.detail));
   assert.equal('statements' in finished.result.topic,false);assert.ok(finished.result.topic.summary);
   assert.ok(finished.result.responses.every(row => row.status === 'completed'));
   const countBefore = requests.length, sex = personas[0].sex;

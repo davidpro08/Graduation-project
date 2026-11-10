@@ -20,7 +20,7 @@ test('JEV-CPU는 승리 선택지의 조건부 확률·좌표·라벨을 검증�
   assert.equal(aggregate([row, { ...row, opinion: { agreement: 0, confidence: 0.5, opinion: '중립' } }]).jevScoreKind, 'mixed');
 });
 function profile(i) { return { id: i.toString(16).padStart(32, '0'), age: 19 + i % 60, sex: i % 2 ? '여성' : '남성', province: i % 2 ? '서울특별시' : '경기도', education: '대학교 졸업', occupation: '합성 직업', income: '미상', ageGroup: '19-29', persona: '공개 합성 프로필' }; }
-function fixture(size = 200) {
+function fixture(size = 200, counts = { detail: 50, jev: 50 }) {
   const jobs = new Map(), calls = { detail: 0, jev: 0, refine: [], filters: null };
   const repo = {
     create: async (_user, id, conversationId, input, filters, speakerIds) => { const row = { id, conversationId, input, filters, speakerIds, revision: 0, document: null, status: 'pending', result: null, selected: 0, processed: 0 }; jobs.set(id, row); return { ...row }; },
@@ -37,7 +37,11 @@ function fixture(size = 200) {
   const ai = { ready() {}, refine: async (_input, messages) => { calls.refine.push(...messages.map(m => m.id)); return topic; }, respond: async () => { calls.detail++; return { opinion, model: 'synthetic-qwen' }; } };
   const jev = { ready() {}, respond: async () => { calls.jev++; return { opinion: { ...opinion, answer: undefined }, model: 'synthetic-jev' }; } };
   const chats = { find: async () => ({}), messages: async () => ({ items: [], total: 0, pageSize: 200 }) };
-  return { service: new DebatesService(repo, source, ai, jev, chats), jobs, calls, repo, source, ai, jev, chats };
+  const keys = ['PERSONA_DETAIL_COUNT', 'PERSONA_JEV_COUNT'];
+  const previous = keys.map(key => process.env[key]);
+  process.env.PERSONA_DETAIL_COUNT = String(counts.detail); process.env.PERSONA_JEV_COUNT = String(counts.jev);
+  try { return { service: new DebatesService(repo, source, ai, jev, chats), jobs, calls, repo, source, ai, jev, chats }; }
+  finally { keys.forEach((key, i) => { if (previous[i] === undefined) delete process.env[key]; else process.env[key] = previous[i]; }); }
 }
 async function finish(f) {
   const started = await f.service.create(user, randomUUID(), '불가피한 지각에도 벌금이 필요한가?', {});
@@ -49,11 +53,13 @@ async function finish(f) {
   for (let i = 0; i < 200; i++) { const job = f.jobs.get(started.id); if (['completed', 'failed'].includes(job.status)) return job; await new Promise(resolve => setTimeout(resolve, 2)); }
   throw Error('worker timeout');
 }
-test('무필터 200명은 중복 없는 상세20 + JEV180으로 실행하고 전체 집계', async () => {
+test('후보 200명 중 중복 없는 상세50 + JEV50만 실행하고 100명 집계', async () => {
   const f = fixture(), job = await finish(f);
-  assert.equal(job.status, 'completed'); assert.equal(f.calls.detail, 20); assert.equal(f.calls.jev, 180);
-  assert.equal(job.result.statistics.answered, 200); assert.equal(job.result.statistics.spectrum.length, 20);
-  assert.equal(new Set(job.result.responses.map(row => row.persona.id)).size, 200);
+  assert.equal(job.status, 'completed'); assert.equal(f.calls.detail, 50); assert.equal(f.calls.jev, 50);
+  assert.equal(job.result.detailTarget, 50); assert.equal(job.result.jevTarget, 50);
+  assert.equal(job.result.selected, 100); assert.equal(job.result.eligible, 200);
+  assert.equal(job.result.statistics.answered, 100); assert.equal(job.result.statistics.spectrum.length, 50);
+  assert.equal(new Set(job.result.responses.map(row => row.persona.id)).size, 100);
   assert.ok(job.result.responses.every(row => !('persona' in row.persona)));
 });
 test('필터로 13명이면 상세13, JEV0이며 JEV 미설정이어도 실행', async () => {
@@ -61,17 +67,37 @@ test('필터로 13명이면 상세13, JEV0이며 JEV 미설정이어도 실행',
   const job = await finish(f); assert.equal(job.status, 'completed'); assert.equal(f.calls.detail, 13); assert.equal(f.calls.jev, 0);
   assert.equal(job.result.statistics.jevAgreement, null); assert.equal(job.result.statistics.spectrum[0].alignment, null);
 });
-test('미리보기와 시작 요청에 조건을 전달하며 희소 표본은 상세20 우선', async () => {
+test('미리보기와 실행은 같은 설정을 적용하며 희소 표본은 상세50 우선', async () => {
   const f = fixture(70), filters = { province: ['서울특별시'], sex: ['여성'] };
-  assert.deepEqual(await f.service.preview(user, randomUUID(), filters), { eligible: 70, selected: 70, detail: 20, jev: 50 });
+  assert.deepEqual(await f.service.preview(user, randomUUID(), filters), { eligible: 70, selected: 70, detail: 50, jev: 20 });
   assert.deepEqual(f.calls.filters, filters);
+  const job = await finish(f); assert.equal(job.result.detailTarget, 50); assert.equal(job.result.jevTarget, 20);
+});
+
+test('사용자 인원 설정은 미리보기·실행에 함께 적용하고 서비스 생성 후 유지', async () => {
+  const f = fixture(200, { detail: 20, jev: 180 });
+  assert.deepEqual(await f.service.preview(user, randomUUID(), {}), { eligible: 200, selected: 200, detail: 20, jev: 180 });
+  const job = await finish(f); assert.equal(job.status, 'completed');
+  assert.equal(f.calls.detail, 20); assert.equal(f.calls.jev, 180);
+});
+
+test('한쪽 인원 0이면 사용하지 않는 모델의 준비 검사·호출을 생략', async () => {
+  for (const counts of [{ detail: 0, jev: 50 }, { detail: 50, jev: 0 }]) {
+    const f = fixture(200, counts);
+    let aiReady = 0;
+    f.ai.ready = () => { aiReady++; if (counts.detail === 0 && aiReady > 1) throw Error('문서 생성 외 상세 모델 사용 금지'); };
+    if (counts.jev === 0) f.jev.ready = () => { throw Error('사용하지 않는 의견 모델'); };
+    const job = await finish(f); assert.equal(job.status, 'completed');
+    assert.equal(aiReady, counts.detail === 0 ? 1 : 2);
+    assert.equal(f.calls.detail, counts.detail); assert.equal(f.calls.jev, counts.jev);
+  }
 });
 test('조건에 맞는 표본0과 중복 표본은 응답 생성 없이 실패', async () => {
   let f = fixture(0); assert.equal((await finish(f)).errorCode, 'NO_PERSONAS'); assert.equal(f.calls.detail, 0);
   f = fixture(2); f.source.select = async () => ({ eligible: 2, personas: [profile(1), profile(1)] });
   assert.equal((await finish(f)).errorCode, 'PERSONA_INVALID_SAMPLE');
 });
-test('JEV 미설정은 상세 모델180회 등의 대체 실행 없이 실패', async () => {
+test('JEV 미설정은 상세 모델로 대체 실행 없이 실패', async () => {
   const f = fixture(); f.jev.ready = () => { throw new DebateError('JEV_NOT_CONFIGURED'); };
   const job = await finish(f); assert.equal(job.errorCode, 'JEV_NOT_CONFIGURED'); assert.equal(f.calls.detail, 0); assert.equal(job.result, null);
 });
@@ -175,4 +201,4 @@ test('Qwen 응답은 토큰 확인 후 실행하며 초과 컨텍스트와 잘�
 
 test('미완성 서버 문서 틀로 의견을 다시 요청하지 않음',async()=>{const f=fixture(1),id=randomUUID();f.jobs.set(id,{id,status:'failed',document:{draftOnly:true},conversationId:randomUUID()});await assert.rejects(f.service.restart(user,id,'opinions'),e=>e.getStatus()===400);assert.equal(f.calls.detail,0);});
 
-test('상세 응답 완료를 기다리지 않고 JEV 작업도 시작',async()=>{const f=fixture(21);let release;const jevStarted=new Promise(resolve=>{release=resolve;});f.ai.respond=async()=>{await jevStarted;return {opinion,model:'synthetic-qwen'};};f.jev.respond=async()=>{release();return {opinion,model:'synthetic-jev'};};const job=await finish(f);assert.equal(job.status,'completed');assert.equal(job.result.statistics.answered,21);});
+test('상세 응답 완료를 기다리지 않고 JEV 작업도 시작',async()=>{const f=fixture(51);let release;const jevStarted=new Promise(resolve=>{release=resolve;});f.ai.respond=async()=>{await jevStarted;return {opinion,model:'synthetic-qwen'};};f.jev.respond=async()=>{release();return {opinion,model:'synthetic-jev'};};const job=await finish(f);assert.equal(job.status,'completed');assert.equal(job.result.statistics.answered,51);});
