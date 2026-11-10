@@ -1,0 +1,9 @@
+require('reflect-metadata');
+const {test}=require('node:test'),assert=require('node:assert/strict');
+const {validateSchema,validateAnswer}=require('../dist/debates/answer-schema');
+const {aggregate}=require('../dist/debates/debate.statistics');
+const schema={kind:'numeric',unit:'원',basis:'1인당',options:[{id:'o1',label:'만원 미만',min:0,max:10000},{id:'o2',label:'만원 이상',min:10000,max:null},{id:'o0',label:'보류'}]};
+test('금액 구간은 연속 경계와 단위·고유 항목을 검증',()=>{assert.equal(validateSchema(schema).kind,'numeric');for(const v of [{...schema,unit:''},{...schema,options:[schema.options[0],{...schema.options[1],min:9000},schema.options[2]]},{...schema,options:[...schema.options,schema.options[0]]}])assert.throws(()=>validateSchema(v));});
+test('정확한 금액은 서버가 경계에 따라 분류하며 NaN은 거절',()=>{const v={optionId:'o1',numericValue:10000,opinion:'만원',answer:'실제 결제액을 나누면 만원입니다.',personaBasis:'정산 경험'};assert.equal(validateAnswer(v,true,schema).optionId,'o2');assert.throws(()=>validateAnswer({...v,numericValue:NaN},true,schema));});
+test('동적 JEV는 순서·항목·확률 합을 검증하며 금액을 만들지 않음',()=>{const v={optionId:'o2',opinion:'만원 이상',scoreKind:'conditional_option_probability',optionProbabilities:[0.1,0.8,0.1]};const out=validateAnswer(v,false,schema);assert.equal(out.numericValue,undefined);assert.throws(()=>validateAnswer({...v,optionId:'o1'},false,schema));});
+test('통계는 JEV 구간을 금액 평균에 섞지 않고 필터를 적용',()=>{const rows=[{persona:{id:'a',sex:'여자'},status:'completed',mode:'detail',opinion:{optionId:'o2',numericValue:12000,confidence:0,agreement:0}},{persona:{id:'b',sex:'남자'},status:'completed',mode:'jev',opinion:{optionId:'o1',confidence:0.8,agreement:0}}];const a=aggregate(rows,{},schema);assert.equal(a.numericSummary.mean,12000);assert.deepEqual(a.distribution.map(x=>x.count),[1,1,0]);assert.equal(aggregate(rows,{sex:['남자']},schema).numericSummary,null);});

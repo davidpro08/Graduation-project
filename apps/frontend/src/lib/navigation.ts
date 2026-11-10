@@ -9,8 +9,9 @@ export const conversationTabs = [
 ] as const;
 export type TabId = typeof conversationTabs[number]['id'];
 export type Route = { page: 'login' | 'conversations' | 'upload' | 'health' } |
-  { page: 'conversation'; conversationId: string; tab: TabId; messageId?: string };
+  { page: 'conversation'; conversationId: string; tab: TabId; messageId?: string; analysisId?: string };
 
 export function conversationHref(id: string, tab: TabId = 'messages', messageId?: string) {
   return `/conversation/${encodeURIComponent(id)}/${tab}${messageId ? `?message=${encodeURIComponent(messageId)}` : ''}`;
 }
+export function debateHref(conversationId: string, analysisId: string) { return `${conversationHref(conversationId, 'opinions')}/${encodeURIComponent(analysisId)}`; }

@@ -8,7 +8,7 @@ export function useRoute(): Route {
   const parts = (pathname ?? '').split('/').filter(Boolean);
   if (parts[0] === 'conversation' && parts[1]) {
     const tab = conversationTabs.find(item => item.id === parts[2])?.id ?? 'messages';
-    return { page: 'conversation', conversationId: decodeURIComponent(parts[1]), tab, messageId: search?.get('message') ?? undefined };
+    return { page: 'conversation', conversationId: decodeURIComponent(parts[1]), tab, messageId: search?.get('message') ?? undefined, analysisId: tab === 'opinions' && parts[3] ? decodeURIComponent(parts[3]) : undefined };
   }
   if (parts[0] === 'conversations' || parts[0] === 'upload' || parts[0] === 'health') return { page: parts[0] };
   return { page: 'login' };

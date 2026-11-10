@@ -68,6 +68,12 @@ export class SupabaseChatRepo implements ConversationRepository {
       speaker:(row.participants as unknown as {name:string}|null)?.name ?? '시스템',date:row.message_date as string,
       time:(row.message_time as string|null)?.slice(0,5) ?? '',text:row.body as string,kind:row.kind as 'text'|'attachment'|'system'})),total:count ?? 0,page,pageSize };
   }
+  async selectedMessages(user:AuthUser,id:string,ids:string[]){
+    if(!ids.length)return [];
+    const {data,error}=await this.supabase.forUser(user.token).from('messages').select('id,sequence,participant_id,message_date,message_time,body,kind,participants(name)').eq('owner_id',user.id).eq('conversation_id',id).eq('kind','text').in('id',ids).order('sequence');
+    if(error||!data)return unavailable();
+    return data.map(row=>({id:row.id as string,sequence:row.sequence as number,participantId:row.participant_id as string|null,speaker:(row.participants as unknown as {name:string}|null)?.name??'시스템',date:row.message_date as string,time:(row.message_time as string|null)?.slice(0,5)??'',text:row.body as string,kind:'text' as const}));
+  }
   async statistics(user: AuthUser, id: string, filter: ChatFilter): Promise<Statistics> {
     const { data,error }=await this.supabase.forUser(user.token).rpc('conversation_statistics',{
       p_id:id,p_from:filter.from ?? null,p_to:filter.to ?? null,p_participant:filter.participantId ?? null });
