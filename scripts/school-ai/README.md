@@ -86,3 +86,21 @@ pnpm --filter @gratta/backend check:persona-pipeline ../../.tmp/gpu-ai/personas-
 실험 스크립트는 실제 운영 서비스·실제 Qwen을 사용하며 작업 저장만 메모리로 대체한다. 학교 서버에 보내는 대화는 코드에 고정된 합성 대화다. 문서 검토 대기·버전 저장·명시적 실행·상세 응답·필터 재집계를 확인하고 소요 시간·토큰 수·종료 사유·스키마 검증 결과를 기록한다. 최대200명(상세20+JEV180)이며 원문을 제외한 요약 입력도 검사한다. 실제 학교 JEV 검증은 --with-jev 실행에 포함하지만 DB 영구 저장/실제 로그인 검증과는 구분한다.
 
 공식 근거: [모델·라이선스](https://huggingface.co/Qwen/Qwen3-32B-AWQ), [vLLM GPU 설치](https://docs.vllm.ai/en/stable/getting_started/installation/gpu/), [JEV-CPU](https://huggingface.co/Meanblock/JEV-CPU). 로더·direct/core의 검토한 고정 소스를 외부 캐시에 내려받아 호출하며 원본 LICENSE/THIRD_PARTY를 함께 보존한다.
+
+
+## SemIF CUDA 전환 · 2026-11-10
+
+공식 TheoLeeCJ/SemIf 커밋23cf1f39fc9534fe81437200959b6dfc7106e45a의 CUDA 로더와 direct.score를 사용하도록 브리지를 변경했다. Qwen3-0.6B/기존 모델 리비전은 유지하며 BF16 CUDA로 로드한다. 모든 파라미터가 CUDA인지 확인하고 CPU로 자동 우회하지 않는다. 기존 모순·페르소나 HTTP 계약은 유지하고 모델/health 장치 표시는 실제 manifest를 따른다.
+
+bootstrap-semif.py는 기존 bootstrap.py가 설치한 uv를 사용해 독립 semif-venv와 semif-manifest.json을 준비한다. CPU 환경/manifest는 보존한다. 기본 브리지 manifest는 semif-manifest.json이며 CPU 복구 시 명시적으로 --manifest jev-manifest.json을 사용한다.
+
+```bash
+python3 /opt/gratta-ai/bootstrap-semif.py --runtime-dir /opt/gratta-ai --state-dir /mnt/jev_ae63e/gratta-ai
+/opt/gratta-ai/semif-venv/bin/python /opt/gratta-ai/jev_server.py --state-dir /mnt/jev_ae63e/gratta-ai
+```
+
+경로는 기존 학교 환경 예시이며 새 서버에서 먼저 확인한다. 실제 전환 전 Qwen이 점유한 GPU 메모리와 동시 추론 최대 사용량을 확인해야 한다. 기존 Qwen 메모리 비율0.94에서 소형 모델을 추가할 여유는 보장되지 않는다. 메모리 비율 조정 또는 순차 사용은 실측 후 결정하며 운영 프로세스를 아직 변경하지 않았다.
+
+이번 접속은 기존 dont.pem 부재 및 기존 SSH 접속 실패로 차단됐다. 로컬 Python 계약 테스트6개·구문 검사 통과. 실제 CUDA 로드·속도 대조·Qwen 동시 추론·배포는 미검증이다. 설치 스크립트는 대상 CUDA 호스트에서 실행 검증이 필요하다. 커밋/PR 갱신 없음.
+
+원본: https://github.com/TheoLeeCJ/SemIf/tree/23cf1f39fc9534fe81437200959b6dfc7106e45a

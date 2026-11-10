@@ -81,31 +81,41 @@ def present_result(row, result, manifest):
     winner = max(range(len(ids)), key=probabilities.__getitem__)
     if row.get("version") == "claim-pair-v1":
         return {"version": "claim-pair-v1", "verdict": ids[winner], "probabilities": probabilities,
-                "model": "Meanblock/JEV-CPU@" + manifest["engine_revision"][:8] + ":Qwen3-0.6B@" + manifest["brain_revision"][:8]}
+                "model": manifest.get("engine", "Meanblock/JEV-CPU") + "@" + manifest["engine_revision"][:8] + ":Qwen3-0.6B@" + manifest["brain_revision"][:8]}
     return {"version": row.get("version", "persona-opinion-v1"), "personaId": row["id"],
-            "model": "Meanblock/JEV-CPU@" + manifest["engine_revision"][:8] + ":Qwen3-0.6B@" + manifest["brain_revision"][:8],
+            "model": manifest.get("engine", "Meanblock/JEV-CPU") + "@" + manifest["engine_revision"][:8] + ":Qwen3-0.6B@" + manifest["brain_revision"][:8],
             "opinion": {"agreement": 0 if dynamic else COORDINATES[winner], "confidence": probabilities[winner], "opinion": labels[winner].split("; lower inclusive")[0] if dynamic else LABELS[winner],
                         **({"optionId": ids[winner]} if dynamic else {}),
                         "scoreKind": "conditional_option_probability", "optionProbabilities": probabilities},
             "metadata": {"engineRevision": manifest["engine_revision"], "brainRevision": manifest["brain_revision"],
-                         "device": "cpu", "inputTokens": result["input_tokens"],
+                         "device": manifest.get("device", "cpu"), "inputTokens": result["input_tokens"],
                          "forwardMilliseconds": round(result["forward_seconds"] * 1000),
                          "probabilityStatus": "conditional on the declared options; not calibrated accuracy"}}
 
 
 class JevEngine:
     def __init__(self, manifest, threads, max_tokens):
-        os.environ["CUDA_VISIBLE_DEVICES"] = ""
-        os.environ["SEMIF_DIR"] = manifest["source_path"]
+        device = manifest.get("device", "cpu")
+        if device not in ("cpu", "cuda"):
+            raise ValueError("Unsupported execution device")
         os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
-        sys.path.insert(0, manifest["source_path"])
-        from semif_cpu import load_causal_model_cpu, direct_score
+        if device == "cpu":
+            os.environ["CUDA_VISIBLE_DEVICES"] = ""
+            os.environ["SEMIF_DIR"] = manifest["source_path"]
+            sys.path.insert(0, manifest["source_path"])
+            from semif_cpu import load_causal_model_cpu as loader, direct_score
+        else:
+            sys.path.insert(0, str(Path(manifest["source_path"]) / "src"))
+            from semif_phase1.core import load_causal_model
+            from semif_phase1.direct import score as direct_score
+            def loader(source, revision):
+                return load_causal_model(source, revision, device="cuda", dtype="bfloat16")
         import torch
         torch.set_num_threads(threads)
         torch.set_num_interop_threads(1)
-        self.model, self.tokenizer, self.metadata = load_causal_model_cpu(manifest["brain_path"], manifest["brain_revision"])
-        if next(self.model.parameters()).device.type != "cpu":
-            raise RuntimeError("JEV 모델이 CPU에 로드되지 않았습니다")
+        self.model, self.tokenizer, self.metadata = loader(manifest["brain_path"], manifest["brain_revision"])
+        if any(parameter.device.type != device for parameter in self.model.parameters()):
+            raise RuntimeError("Model device mismatch; CPU fallback is forbidden")
         self.manifest, self.scorer, self.max_tokens = manifest, direct_score, max_tokens
         self.lock = threading.Lock()
         self.pending = threading.BoundedSemaphore(8)
@@ -142,7 +152,7 @@ class JevHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path != "/health":
             return self.respond(404, {"code": "NOT_FOUND"})
-        self.respond(200, {"status": "ok", "engine": "Meanblock/JEV-CPU", "device": "cpu", "maxTokens": self.server.engine.max_tokens})
+        self.respond(200, {"status": "ok", "engine": self.server.engine.manifest.get("engine", "Meanblock/JEV-CPU"), "device": self.server.engine.manifest.get("device", "cpu"), "maxTokens": self.server.engine.max_tokens})
 
     def do_POST(self):
         if self.path not in ("/v1/persona-opinion", "/v1/claim-pair"):
@@ -173,15 +183,16 @@ def main():
     parser.add_argument("--state-dir", required=True, type=Path)
     parser.add_argument("--threads", type=int, default=8)
     parser.add_argument("--max-tokens", type=int, default=4096)
+    parser.add_argument("--manifest", default="semif-manifest.json", choices=["semif-manifest.json", "jev-manifest.json"])
     args = parser.parse_args()
     if not 1 <= args.threads <= 16 or not 256 <= args.max_tokens <= 4096:
         parser.error("지원하지 않는 CPU 설정")
-    manifest = json.loads((args.state_dir / "jev-manifest.json").read_text())
+    manifest = json.loads((args.state_dir / args.manifest).read_text())
     started = time.monotonic()
     engine = JevEngine(manifest, args.threads, args.max_tokens)
     server = ThreadingHTTPServer(("127.0.0.1", 8001), JevHandler)
     server.engine = engine
-    print(json.dumps({"status": "ready", "device": "cpu", "port": 8001, "threads": args.threads, "loadSeconds": round(time.monotonic() - started, 2)}), flush=True)
+    print(json.dumps({"status": "ready", "device": manifest.get("device", "cpu"), "port": 8001, "threads": args.threads, "loadSeconds": round(time.monotonic() - started, 2)}), flush=True)
     server.serve_forever()
 
 

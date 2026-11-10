@@ -69,5 +69,15 @@ class ClaimPairTests(unittest.TestCase):
             prepare_claim_pair(payload)
 
 
+class SemifMetadataTests(unittest.TestCase):
+    def test_gpu_identity_is_not_reported_as_cpu(self):
+        from jev_server import prepare_claim_pair
+        ref = {"message": {"id": "a", "text": "yes"}, "claim": {"evidence": "yes", "subject": None, "predicate": "exist", "object": None, "polarity": "positive", "qualifiers": []}}
+        row = prepare_claim_pair({"version": "claim-pair-v1", "left": ref, "right": ref})
+        manifest = {"engine": "TheoLeeCJ/SemIf", "device": "cuda", "engine_revision": "a" * 40, "brain_revision": "b" * 40}
+        result = present_result(row, {"option_ids": ["contradiction", "compatible", "unknown"], "probabilities": [0.8, 0.1, 0.1]}, manifest)
+        self.assertTrue(result["model"].startswith("TheoLeeCJ/SemIf@"))
+
+
 if __name__ == "__main__":
     unittest.main()
