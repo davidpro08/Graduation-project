@@ -1,0 +1,28 @@
+/* 통계 (C 스타일 시안) */
+.statistics-layout .card { border: none; border-radius: 16px; box-shadow: 0 1px 3px rgba(31, 42, 68, 0.08); padding: 22px; }
+.statistics-layout .card-heading h2 { font-size: 17px; font-weight: 700; }
+.stats-title h2 { font-size: 20px; font-weight: 700; }
+.statistics-metrics .card { padding: 18px; gap: 6px; background: #E9F0FB; box-shadow: none; }
+.statistics-metrics .card .small { font-size: 13px; color: #3B4866; }
+.statistics-metrics .metric { color: var(--foreground); font-weight: 700; }
+.statistics-metrics .metric > span:last-child { font-size: 15px; font-weight: 500; color: #3B4866; margin-left: 4px; }
+.share-bar-wrap { display: flex; flex-direction: column; gap: 8px; }
+.share-bar { display: flex; height: 44px; gap: 3px; border-radius: 12px; overflow: hidden; }
+.share-seg { flex: 1 1 0; min-width: 0; display: flex; align-items: center; padding: 0 12px; border: none; color: var(--foreground); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; transition: opacity 0.15s, box-shadow 0.15s; }
+.share-seg span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.share-seg:hover { box-shadow: inset 0 0 0 2px rgba(31, 42, 68, 0.35); }
+.share-seg.is-on { box-shadow: inset 0 0 0 3px var(--foreground); }
+.share-seg.is-dim { opacity: 0.4; }
+.share-seg.is-rest { background: #DCE3EE; cursor: default; }
+.share-seg.is-rest:hover { box-shadow: none; }
+.award-card { background: #F7F9FC; border: none; border-radius: 14px; }
+.award-heading { color: var(--foreground); }
+.award-heading svg { color: var(--primary); }
+.award-score { color: var(--primary); font-size: 15px; }
+.ranking-table th { font-size: 12px; font-weight: 500; color: var(--muted-foreground); background: #F7F9FC; }
+.ranking-table th:first-child { border-radius: 10px 0 0 10px; }
+.ranking-table th:last-child { border-radius: 0 10px 10px 0; }
+.ranking-table th, .ranking-table td { border-bottom-color: #EEF2F8; }
+.ranking-table tbody tr:hover { background: #F7F9FC; }
+.statistics-sidebar .card { background: var(--card); }
+.statistics-sidebar .card:last-child { background: transparent; box-shadow: none; padding: 4px 6px; }

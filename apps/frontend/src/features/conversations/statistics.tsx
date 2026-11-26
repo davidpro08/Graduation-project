@@ -10,6 +10,7 @@ import { getStatistics } from './client';
 import { PageControls, ParticipantAvatar, QueryFilters } from './filters';
 import { useQueryResult, useReducedMotion } from './hooks';
 import type { ChatFilter, Conversation, Statistics } from './types';
+import '@/styles/statistics.css';
 
 const config={count:{label:'메시지',color:'var(--primary)'}};
 function AnimatedNumber({value}:{value:number}) {
@@ -37,6 +38,15 @@ function Awards({data}:{data:Statistics}) {
       <p className="small muted">{award.description}</p>{winners.length?<><div className="award-people">{winners.slice(0,3).map(p=><div className="award-person" key={p.id}><ParticipantAvatar participant={p}/><span>{p.name}</span></div>)}{winners.length>3 && <span className="small" title={winners.slice(3).map(p=>p.name).join(', ')}>외 {winners.length-3}명</span>}</div><strong className="award-score">{award.format(winners[0])}</strong></>:<p className="small muted">조건을 충족한 참여자가 없습니다.</p>}</article>;
   })}</div>;
 }
+function ShareBar({data,selected,onPick}:{data:Statistics;selected?:string;onPick:(id?:string)=>void}) {
+  const people=data.participants.filter(p=>p.count>0);const shown=people.slice(0,8);const rest=people.slice(8).reduce((sum,p)=>sum+p.count,0);
+  const pct=(count:number)=>Math.round(count/Math.max(data.messageCount,1)*1000)/10;
+  return <div className="share-bar-wrap">
+    <div className="share-bar" role="group" aria-label="참여자별 발언 비율">{shown.map(p=><button type="button" key={p.id} className={`share-seg${selected && selected!==p.id?' is-dim':''}${selected===p.id?' is-on':''}`} style={{flexGrow:p.count,background:`hsl(${p.colorIndex%20*18} 60% 84%)`}} aria-pressed={selected===p.id} title={`${p.name} ${pct(p.count)}% · ${p.count.toLocaleString()}개`} onClick={()=>onPick(selected===p.id?undefined:p.id)}><span>{p.name} {pct(p.count)}%</span></button>)}
+      {rest>0 && <span className="share-seg is-rest" style={{flexGrow:rest}} title={`기타 ${people.length-8}명 ${pct(rest)}%`}><span>기타 {pct(rest)}%</span></span>}</div>
+    <p className="small muted">{selected?'선택한 참여자만 보는 중 · 한 번 더 누르면 전체로 돌아가요':'이름을 누르면 그 참여자 기준으로 통계를 다시 계산해요'}</p>
+  </div>;
+}
 export function StatisticsPage({conversation}:{conversation:Conversation}) {
   const [filter,setFilter]=useState<ChatFilter>({});const [rankingPage,setRankingPage]=useState(1);const reduced=useReducedMotion();
   const key=JSON.stringify([conversation.id,filter]);const {data,loading,error,retry}=useQueryResult(key,signal=>getStatistics(conversation.id,filter,signal));
@@ -48,6 +58,7 @@ export function StatisticsPage({conversation}:{conversation:Conversation}) {
     {!data && loading?<><Skeleton className="h-32 w-full"/><Skeleton className="h-80 w-full"/></>:data && !error?<div className={`stack statistics-content ${loading?'is-refreshing':''}`} aria-busy={loading}>
       <div className="statistics-metrics">{[{label:'메시지',value:data.messageCount,unit:'개'},{label:'발언 참여자',value:data.participantCount,unit:'명'},{label:'텍스트 글자',value:data.characterCount,unit:'자'},{label:'평균 메시지 길이',value:Math.round(data.characterCount/Math.max(data.textCount,1)),unit:'자'}].map(metric=><Card key={metric.label}><p className="small muted">{metric.label}</p><strong className="metric"><AnimatedNumber value={metric.value}/><span>{metric.unit}</span></strong></Card>)}</div>
       {!data.messageCount?<Card><Empty title="조회 조건에 맞는 메시지가 없습니다">기간이나 참여자를 변경해 주세요.</Empty></Card>:<>
+        {!filter.participantId && data.participants.filter(p=>p.count>0).length>1 && <Card title="누가 얼마나 말했나"><ShareBar data={data} selected={filter.participantId} onPick={id=>update({...filter,participantId:id})}/></Card>}
         <Card title="대화 속 캐릭터"><Awards data={data}/><p className="small muted">선택한 조건 안에서 계산한 활동 별명입니다. 성격이나 실제 답변 여부를 판단하지 않습니다.</p></Card>
         <Card title="참여자별 메시지 수" action={<span className="small muted">상위 {top.length}명</span>}><ChartContainer config={config} className="participant-chart" style={{height:Math.max(220,top.length*40)}}>
           <BarChart data={top} layout="vertical" accessibilityLayer margin={{left:0,right:30}}><CartesianGrid horizontal={false}/><XAxis type="number" allowDecimals={false}/><YAxis type="category" dataKey="name" width={90} tickLine={false} axisLine={false} tickFormatter={(name:string)=>name.length>9?`${name.slice(0,8)}…`:name}/>
