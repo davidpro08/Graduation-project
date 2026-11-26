@@ -1,0 +1,25 @@
+/* 내 대화 목록 (C 스타일 시안) */
+.conv-panel { display: flex; flex-direction: column; gap: var(--space-4); padding: 24px; background: var(--card); border-radius: 16px; box-shadow: 0 1px 3px rgba(31, 42, 68, 0.08); }
+.conv-panel-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.conv-panel-head h2 { font-size: 18px; font-weight: 700; }
+.conv-count { padding: 4px 12px; border-radius: var(--radius-pill); background: #E9F0FB; font-size: 13px; font-weight: 500; color: #3B4866; }
+.conv-search input { min-height: 48px; border-radius: 12px; border-color: #C9D6EC; font-size: 15px; }
+.conv-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-3); }
+.conv-item { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-4); padding: 18px 20px; border-radius: 14px; background: #F7F9FC; transition: background 0.15s; }
+.conv-item:hover { background: #EEF3FB; }
+.conv-item-main { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.conv-item-main h3 { font-size: 17px; font-weight: 700; overflow-wrap: anywhere; }
+.conv-item-main h3 a:hover { color: var(--primary); }
+.conv-item-meta { font-size: 14px; color: var(--muted-foreground); }
+.conv-item .participant-preview { margin-top: 4px; }
+.conv-item-actions { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); }
+.conv-item-actions .button { min-height: 44px; padding: 0 18px; border-radius: 12px; font-size: 15px; }
+.conv-delete { min-height: 44px; padding: 0 12px; border: none; background: transparent; border-radius: 12px; color: var(--destructive); font-size: 14px; cursor: pointer; }
+.conv-delete:hover { background: var(--destructive-subtle); }
+.conv-note { font-size: 13px; line-height: 1.6; color: var(--muted-foreground); }
+@media (max-width: 760px) {
+  .conv-panel { padding: var(--space-4); }
+  .conv-item { padding: var(--space-4); }
+  .conv-item-actions { width: 100%; }
+  .conv-item-actions .button { flex: 1 1 120px; }
+}
