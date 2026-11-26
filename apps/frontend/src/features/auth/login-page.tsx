@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, Notice } from '@/components/layout';
+import { Notice } from '@/components/layout';
 import { updateNickname } from '@/lib/api';
 import { signOut, startOAuth, type LoginProvider } from './client';
 import { useAuth } from './provider';
@@ -43,10 +43,22 @@ export function LoginPage() {
     catch (cause) { setNotice(cause instanceof Error ? cause.message : '닉네임을 저장하지 못했습니다.'); }
     finally { setPending(null); }
   }
-  return <main className="login-page" id="main-content">
-    <Link className="brand" href="/login">그랬잖아</Link>
-    <div className="login-grid"><div className="login-intro"><p className="eyebrow">채팅 기록 기반 대화 도우미</p><h1>기억이 다를 때,<br />대화에서 확인하세요.</h1><p>채팅 기록으로 발언의 근거를 살펴보고<br />다양한 관점에서 대화를 이해하세요.</p><div className="intro-note"><strong>대화의 근거부터, 함께.</strong><p>원문 확인 · 모순 후보 · 관점별 의견 · 일정 정리</p></div></div>
-      <Card title={signedIn ? '내 계정' : '로그인'} className="login-card">
+  return <main className="login-split" id="main-content">
+    <section className="login-hero" aria-label="서비스 소개">
+      <Link className="login-hero-brand" href="/login">그랬잖아</Link>
+      <div className="login-hero-body">
+        <h1>기억이 다를 때,<br />대화에서 확인하세요.</h1>
+        <div className="login-hero-example" aria-hidden="true">
+          <div className="login-bubble"><span>09.29 09:00 · 참여자 A</span><p>제가 금요일까지 제출할게요.</p></div>
+          <div className="login-bubble"><span>09.30 09:00 · 참여자 A</span><p>제가 제출하기로 한 적은 없어요.</p></div>
+          <span className="login-hero-chip"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 9v4M12 17h.01" /><circle cx="12" cy="12" r="9" /></svg>불일치 가능성 · 원문 2건</span>
+        </div>
+      </div>
+      <p className="login-hero-note">카카오톡에서 내보낸 대화를 올리면 원문과 통계, 모순 후보, 관점별 의견, 일정 후보를 한곳에서 볼 수 있어요.</p>
+    </section>
+    <section className="login-panel" aria-labelledby="login-panel-title">
+      <div className="login-panel-inner">
+        <div className="login-panel-head"><h2 id="login-panel-title">{signedIn ? '내 계정' : '로그인'}</h2>{!signedIn && <p>처음 로그인하면 계정이 자동으로 만들어져요.</p>}</div>
         {!ready ? <Notice>로그인 상태를 확인하고 있습니다.</Notice> : signedIn ? <div className="stack">
           <p>{user ? `${user.nickname ?? '사용자'}님, 로그인되었습니다.` : '로그인되었습니다. 사용자 정보를 확인하고 있습니다.'}</p>
           {user && <><p className="small muted">{user.email ?? '연결된 계정'} · {user.providers.join(', ')}</p>
@@ -55,19 +67,16 @@ export function LoginPage() {
           <Button asChild><Link href="/conversations">대화 화면으로 이동</Link></Button>
           <Button variant="outline" disabled={!!pending} onClick={() => { void logout(); }}>{pending === 'logout' ? '로그아웃 중…' : '로그아웃'}</Button>
         </div> : <>
-          <p className="muted">사용하는 계정으로 간편하게 시작하세요.</p>
           <div className="oauth-buttons" aria-busy={!!pending}>{providers.map(provider =>
             <button className={`oauth-button oauth-${provider.id}`} type="button" key={provider.id} aria-label={provider.label} disabled={!!pending} onClick={() => { void login(provider.id); }}>
               {provider.id === 'github' ? <><Image src={provider.image} width={24} height={24} alt="" /><span>{provider.label}</span></> : <Image src={provider.image} width={provider.id === 'google' ? 378 : 224} height={provider.id === 'google' ? 80 : 46} alt={provider.label} unoptimized />}
             </button>)}</div>
           {pending && <p className="small muted" role="status">로그인 페이지로 이동하고 있습니다.</p>}
-          <p className="small muted">처음 로그인하면 계정이 자동으로 생성됩니다.</p>
           {error && <Notice tone="error">{error}</Notice>}
         </>}
         {notice && <Notice tone="error">{notice}</Notice>}{saved && <Notice tone="success">닉네임을 저장했습니다.</Notice>}
-        <div className="divider" /><p className="small muted">로그인 후 카카오톡 대화를 업로드하고 원문과 통계를 확인하세요.</p>
-      </Card>
-    </div>
-    <p className="small muted">업로드한 원본과 메시지는 계정별로 보관합니다. AI 분석은 연결 준비 중입니다.</p>
+        <p className="login-panel-info">내 대화와 분석 결과는 내 계정에서만 조회해요. 다른 사람은 볼 수 없어요.</p>
+      </div>
+    </section>
   </main>;
 }
