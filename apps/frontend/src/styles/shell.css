@@ -1,0 +1,40 @@
+/* 공통 틀 · 왼쪽 메뉴와 대화 제목·탭 */
+.app-shell { min-height: 100vh; display: grid; grid-template-columns: 320px minmax(0, 1fr); background: var(--background); }
+.app-rail { position: sticky; top: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-2); padding: 24px 16px; background: #E9F0FB; }
+.app-rail-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 0 var(--space-2) var(--space-4); }
+.app-rail-brand { font-size: 22px; font-weight: 700; color: var(--foreground); }
+.app-rail-upload { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 18px; border-radius: 12px; background: var(--primary); color: var(--primary-foreground); font-size: 16px; font-weight: 500; }
+.app-rail-upload svg { width: 18px; height: 18px; }
+.app-rail-upload:hover { background: var(--primary-hover); }
+.app-rail-upload[aria-current] { background: var(--foreground); }
+.app-rail-nav a { display: flex; align-items: center; min-height: 52px; padding: 0 16px; border-radius: 12px; font-size: 17px; font-weight: 700; }
+.app-rail-nav a[aria-current], .app-rail-recent a[aria-current] { background: var(--card); box-shadow: 0 1px 3px rgba(31, 42, 68, 0.10); }
+.app-rail-nav a:hover:not([aria-current]), .app-rail-recent a:hover:not([aria-current]) { background: rgba(255, 255, 255, 0.55); }
+.app-rail-heading { padding: var(--space-4) var(--space-2) var(--space-2); font-size: 14px; font-weight: 700; color: var(--muted-foreground); }
+.app-rail-recent ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.app-rail-recent a { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border-radius: 12px; min-width: 0; }
+.app-rail-recent strong { font-size: 16px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.app-rail-recent span { font-size: 14px; color: var(--muted-foreground); }
+.app-rail-foot { margin-top: auto; padding: var(--space-4) var(--space-2) 0; display: flex; flex-direction: column; gap: var(--space-2); font-size: 14px; color: var(--muted-foreground); }
+.app-rail-foot .account-link { font-size: 15px; font-weight: 500; color: var(--foreground); }
+.app-rail-foot .health-link { min-height: 0; color: var(--muted-foreground); }
+.app-main { min-width: 0; padding: 32px 36px 48px; display: flex; flex-direction: column; gap: 20px; outline: none; }
+.app-head { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: var(--space-3); }
+.app-head-title { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.app-head-title h1 { font-size: 28px; line-height: 1.3; font-weight: 700; letter-spacing: -0.02em; overflow-wrap: anywhere; }
+.app-head-title p { font-size: var(--font-body-sm-size); color: var(--muted-foreground); }
+.app-tabs { align-self: flex-start; display: flex; flex-wrap: wrap; gap: 6px; padding: 5px; background: #E9F0FB; border-radius: 14px; }
+.app-tabs a { display: inline-flex; align-items: center; min-height: var(--touch-min); padding: 0 18px; border-radius: 10px; font-size: 15px; color: #3B4866; }
+.app-tabs a[aria-current] { background: var(--card); color: var(--foreground); font-weight: 700; box-shadow: 0 1px 3px rgba(31, 42, 68, 0.10); }
+.app-tabs a:hover:not([aria-current]) { background: rgba(255, 255, 255, 0.55); }
+@media (max-width: 900px) {
+  .app-shell { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .app-rail { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; padding: var(--space-3) var(--space-4); }
+  .app-rail-top { padding: 0; flex: 1 1 auto; }
+  .app-rail-recent, .app-rail-foot .health-link { display: none; }
+  .app-rail-foot { margin: 0; padding: 0; }
+  .app-main { padding: var(--space-6) var(--padding-page-mobile) var(--space-12); }
+  .app-head-title h1 { font-size: var(--font-heading-md-size); line-height: var(--font-heading-md-line-height); }
+  .app-tabs { align-self: stretch; }
+  .app-tabs a { flex: 1 1 96px; justify-content: center; padding: 0 var(--space-3); }
+}
