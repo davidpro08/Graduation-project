@@ -13,6 +13,7 @@ import { ConversationList, HealthPage, LoginPage, UploadPage } from '@/views/wor
 import { ContradictionPage, MessagesPage, OpinionsPage, SchedulesPage } from '@/views/conversation';
 import { StatisticsPage } from '@/features/conversations/statistics';
 import { DebateDetailPage, DebateHistoryPage } from '@/features/debates/detail-page';
+import '@/styles/opinions.css';
 
 export function App() {
   const route = useRoute();
@@ -30,7 +31,7 @@ export function App() {
       {route.tab === 'messages' && <MessagesPage key={route.messageId??'all'} conversation={conversation} messageId={route.messageId} />}
       {route.tab === 'statistics' && <StatisticsPage conversation={conversation} />}
       {route.tab === 'contradiction' && <ContradictionPage conversation={conversation} />}
-      {route.tab === 'opinions' && (route.analysisId === 'history' ? <DebateHistoryPage conversationId={conversation.id}/> : route.analysisId ? <DebateDetailPage conversationId={conversation.id} analysisId={route.analysisId}/> : <OpinionsPage conversation={conversation} />)}
+      {route.tab === 'opinions' && <div className="opinions-area">{route.analysisId === 'history' ? <DebateHistoryPage conversationId={conversation.id}/> : route.analysisId ? <DebateDetailPage conversationId={conversation.id} analysisId={route.analysisId}/> : <OpinionsPage conversation={conversation} />}</div>}
       {route.tab === 'schedules' && <SchedulesPage conversation={conversation} />}
     </div> : null)}
   </Shell>;
