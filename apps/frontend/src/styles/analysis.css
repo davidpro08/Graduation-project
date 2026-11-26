@@ -1,0 +1,19 @@
+/* 모순 후보 · 일정 후보 공통 (C 스타일 시안) */
+.analysis-page.card { border: none; border-radius: 16px; box-shadow: 0 1px 3px rgba(31, 42, 68, 0.08); padding: 24px; }
+.analysis-page > .card-heading h2 { font-size: 18px; font-weight: 700; }
+.analysis-page > .notice:first-of-type { border: none; border-radius: 14px; background: #FDF0E7; color: #5B3B28; font-size: 14px; line-height: 1.6; padding: 14px 16px; }
+.analysis-page > .button { align-self: flex-start; min-height: 44px; padding: 0 20px; border-radius: 12px; font-size: 15px; }
+.analysis-page .ai-progress { border: none; border-radius: 14px; background: #F7F9FC; }
+.analysis-count { font-size: 14px; color: var(--muted-foreground); }
+.analysis-count strong { color: var(--foreground); font-size: 16px; }
+.analysis-page .contradiction-candidate { gap: 14px; padding: 22px; border: none; border-radius: 16px; background: #F7F9FC; }
+.analysis-page .candidate-heading h3 { font-size: 17px; }
+.analysis-page .candidate-number { min-width: 32px; height: 32px; border-radius: 999px; background: #F8C9AE; color: var(--foreground); font-size: 13px; }
+.analysis-page .candidate-body { padding: 14px 16px; border-radius: 4px 14px 14px 14px; background: var(--card); box-shadow: 0 1px 2px rgba(31, 42, 68, 0.06); font-size: 15px; line-height: 1.75; }
+.analysis-page .analysis-evidence { gap: 8px; }
+.analysis-page .analysis-evidence .button { min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); border: 1px solid #C9D6EC; background: var(--card); color: var(--primary); font-size: 14px; }
+.analysis-page .analysis-evidence .button:hover { background: #E9F0FB; }
+.analysis-page .schedule-candidate { border: none; border-radius: 16px; background: #F7F9FC; }
+.analysis-page .schedule-candidate.is-uncertain { box-shadow: inset 0 0 0 2px var(--destructive); }
+.analysis-page .candidate-label { border-radius: var(--radius-pill); padding: 4px 10px; background: #E9F0FB; }
+.analysis-page .analysis-failures { border-radius: 12px; }

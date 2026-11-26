@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { DatePicker } from './filters';
 import { TimePicker } from './time-picker';
 import { AiProgress } from '@/components/ai-progress';
+import '@/styles/analysis.css';
 interface Item {summary?:string;title?:string;dateTimeText?:string;evidenceMessageIds:string[]}
 interface Job {id:string;status:'pending'|'processing'|'completed'|'failed';errorCode:string|null;result:{items:Item[]}|null;metadata:{warnings?:string[];coverage?:'complete'|'partial';failedChunks?:number;failures?:{fromDate:string;fromTime:string;toDate:string;toTime:string;errorCode:string}[];inputRange?:{from:string;to:string;anchor:'conversation_end';messageCount:number}}}
 interface Schedule {id:string;title:string;dateTimeText:string;evidenceMessageIds:string[];status:'proposed'|'confirmed';startsAt:string|null;endsAt:string|null;suggestion?:{date:string|null;time:string|null;endTime:string|null;referenceDate:string;referenceTime:string;warnings:string[];uncertain?:boolean}}
@@ -72,7 +73,7 @@ export function AnalysisPage({id,type,endDate}:{id:string;type:'contradiction'|'
     void load();return()=>{controller.abort();if(timer)clearTimeout(timer);};
   },[id,type,revision]);
   const running=job && ['pending','processing'].includes(job.status);
-  return <Card title={type==='contradiction'?'모순 후보':'일정 후보·확정 일정'}>
+  return <Card title={type==='contradiction'?'모순 후보':'일정 후보·확정 일정'} className={`analysis-page analysis-${type}`}>
     <Notice>대화의 마지막 날짜({endDate})를 기준으로 최근 한 달의 텍스트만 학교 AI 서버에 보내 분석합니다. AI 결과는 후보이므로 원문을 확인해 판단하세요.</Notice>
     <Button disabled={loading||sending||!!running} onClick={async()=>{setSending(true);setError('');try{const next=await authenticatedRequest<Job>(`/conversations/${id}/analyses`,{method:'POST',json:{type}});setJob(next);setRevision(value=>value+1);}catch(error){setError(error instanceof Error?error.message:'분석을 시작하지 못했습니다.');}finally{setSending(false);}}}>{running?'분석 중…':sending?'시작 중…':job?'다시 분석':'분석 시작'}</Button>
     {loading&&<p role="status">저장된 분석을 불러오는 중…</p>}
@@ -86,6 +87,7 @@ export function AnalysisPage({id,type,endDate}:{id:string;type:'contradiction'|'
     {job?.metadata.warnings?.map(warning=><Notice key={warning}>{warning}</Notice>)}
     {job?.metadata.coverage==='partial'&&<Notice tone="error"><strong>일부 구간의 결과입니다.</strong> 분석하지 못한 구간에는 후보가 더 있을 수 있습니다. 다시 분석하면 전체 기간을 재검사합니다.</Notice>}
     {!!job?.metadata.failures?.length&&<details className="analysis-failures"><summary>분석하지 못한 구간 {job.metadata.failedChunks}개 확인</summary>{job.metadata.failures.map((failure,index)=><p className="small" key={index}>{failure.fromDate} {failure.fromTime} ~ {failure.toDate} {failure.toTime} · {failureMessage(failure.errorCode)}</p>)}</details>}
+    {type==='contradiction'&&!!job?.result?.items.length&&<p className="analysis-count">모순 후보 <strong>{job.result.items.length}</strong>건 · 원문 근거를 눌러 직접 확인해 보세요</p>}
     {type==='contradiction'&&job?.result?.items.map((item,index)=><section key={index} className="contradiction-candidate"><div className="candidate-heading"><span className="candidate-number">{String(index+1).padStart(2,'0')}</span><h3>{item.title||item.summary?.split(/[.!?。\n]/)[0].slice(0,50)||'모순 가능성'}</h3></div><p className="candidate-body">{item.summary}</p><Evidence id={id} ids={item.evidenceMessageIds}/></section>)}
     {type==='schedule'&&schedules.map(schedule=><ScheduleForm key={`${schedule.id}-${schedule.startsAt}-${schedule.endsAt}-${schedule.suggestion?.date}-${schedule.suggestion?.time}`} schedule={schedule} id={id} onSaved={()=>setRevision(value=>value+1)}/>)}
     {job?.status==='completed'&&(type==='schedule'?schedules.length===0:job.result?.items.length===0)&&<Empty title="발견한 후보가 없습니다">AI가 놓친 내용이 있을 수 있으므로 필요한 내용은 원문에서도 확인해 주세요.</Empty>}
