@@ -1,0 +1,32 @@
+/* 관점별 의견 (C 스타일 시안) */
+.opinions-area { display: flex; flex-direction: column; gap: 20px; }
+.opinions-area .card { border: none; border-radius: 16px; box-shadow: 0 1px 3px rgba(31, 42, 68, 0.08); }
+.opinions-area .card-heading h2 { font-size: 17px; font-weight: 700; }
+.opinions-area .card .card { background: #F7F9FC; box-shadow: none; }
+.opinions-area .button { border-radius: 12px; }
+.opinions-area .notice { border: none; border-radius: 14px; background: #FDF0E7; color: #5B3B28; }
+.opinions-area .notice-error { background: var(--destructive-subtle); color: var(--destructive); }
+.opinions-area .notice-success { background: var(--success-subtle); color: var(--success); }
+.opinions-area .ai-progress { border: none; border-radius: 14px; background: #F7F9FC; }
+.opinions-area .composer-input, .opinions-area .debate-input { border: 1px solid #C9D6EC; border-radius: 14px; background: var(--card); }
+.opinions-area .composer-audience { border: none; border-radius: 14px; background: #E9F0FB; }
+.opinions-area .filter-trigger { border-color: #C9D6EC; }
+.opinions-area .sample-preview { border-radius: 14px; background: #E9F0FB; color: #3B4866; }
+.opinions-area .response-avatar { border-radius: 12px; background: #E9F0FB; }
+.opinions-area .response-answer { border-radius: 4px 14px 14px 14px; background: #F7F9FC; }
+.opinions-area .opinion-badge { border-radius: var(--radius-pill); }
+.opinions-area .analysis-status, .opinions-area .document-state { border-radius: var(--radius-pill); background: #E9F0FB; color: #3B4866; }
+.opinions-area .analysis-history-item { padding: 16px; border-bottom: none; border-radius: 14px; background: #F7F9FC; margin-bottom: 8px; }
+.opinions-area .analysis-history-item:hover { background: #EEF3FB; }
+.opinions-area .document-icon { border-radius: 12px; background: #E9F0FB; }
+.opinions-area .document-source { border: none; border-radius: 14px; background: #F7F9FC; }
+.opinions-area .document-source.included { box-shadow: inset 3px 0 0 var(--primary); }
+.opinions-area .document-textarea { border-color: #C9D6EC; border-radius: 12px; }
+.opinions-area .persona-filter-group { border: none; border-radius: 14px; background: #F7F9FC; }
+.opinions-area .spectrum-cloud { border: none; border-radius: 12px; }
+.opinions-area .table-scroll th, .opinions-area .debate-distribution th { font-size: 12px; font-weight: 500; color: var(--muted-foreground); background: #F7F9FC; }
+.opinions-area .table-scroll th, .opinions-area .table-scroll td, .opinions-area .debate-distribution th, .opinions-area .debate-distribution td { border-bottom-color: #EEF2F8; }
+/* 필터 팝업은 화면 밖(portal)에 그려져서 따로 지정 */
+.persona-filter-panel, .speaker-filter-panel { border: none; box-shadow: 0 8px 28px rgba(31, 42, 68, 0.18); }
+.persona-filter-panel .persona-filter-group { border: none; border-radius: 14px; background: #F7F9FC; }
+.filter-chip { border-radius: var(--radius-pill); border-color: #C9D6EC; }
