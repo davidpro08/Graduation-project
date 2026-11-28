@@ -8,7 +8,7 @@ import { RegionMap } from './region-map';
 import { fetchPersonaFacets } from './personas-api';
 
 type FilterProps = { options: Facets; value: Filters; onChange: (filters: Filters) => void; disabled?: boolean; conversationId?: string };
-export function PersonaFilters({ options, value, onChange, disabled = false, conversationId }: FilterProps) {
+export function PersonaFilters({ options, value, onChange, disabled = false, conversationId, only }: FilterProps & { only?: Dimension }) {
   const [search, setSearch] = useState(''), [page, setPage] = useState(1);
   const [localSearch, setLocalSearch] = useState<Partial<Record<Dimension, string>>>({});
   const province = value.province ?? [];
@@ -44,6 +44,7 @@ export function PersonaFilters({ options, value, onChange, disabled = false, con
       {key === 'province' && <details className="filter-map"><summary>지도에서 선택</summary><RegionMap options={options.province} selected={province} disabled={disabled} onChange={selected => change('province', selected)}/></details>}
     </section>;
   };
+  if (only) return <fieldset disabled={disabled} className="persona-filters persona-filters-single"><legend className="sr-only">{dimensionLabels[only]} 조건</legend>{group(only)}</fieldset>;
   return <fieldset disabled={disabled} className="persona-filters"><legend className="sr-only">페르소나 조건</legend>
     <p className="small muted">전체 선택은 조건 제한이 없는 상태입니다. 다른 항목을 누르면 해제됩니다. 항목당 최대 30개를 선택할 수 있습니다.</p>
     <div className="persona-filter-grid">{basicDimensions.map(group)}</div>

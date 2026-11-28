@@ -1,0 +1,70 @@
+/* 관점별 의견 입력 — 4단계 위저드 */
+.debate-wizard { display: flex; flex-direction: column; gap: var(--space-5); max-width: 960px; }
+.wizard-intro { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.wizard-intro p { margin: 0; }
+
+/* 단계 표시 */
+.wizard-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.wizard-step { display: flex; align-items: center; gap: var(--space-2); width: 100%; min-height: var(--touch-min); padding: var(--space-2) var(--space-3); border: 0; border-bottom: 3px solid var(--border); background: none; color: var(--muted-foreground); font: inherit; font-size: 15px; text-align: left; cursor: pointer; }
+.wizard-step:disabled { cursor: not-allowed; opacity: .55; }
+.wizard-step-dot { flex: none; display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: var(--radius-pill); background: var(--muted); color: var(--muted-foreground); font-size: 14px; font-weight: 700; }
+.wizard-step[aria-current=step] { border-bottom-color: var(--primary); color: var(--foreground); font-weight: 700; }
+.wizard-step[aria-current=step] .wizard-step-dot { background: var(--primary); color: var(--primary-foreground); }
+.wizard-step[data-done] { border-bottom-color: var(--primary); color: var(--foreground); }
+.wizard-step[data-done] .wizard-step-dot { background: var(--accent-subtle, var(--muted)); color: var(--primary); }
+
+/* 본문 카드 */
+.wizard-panel { display: flex; flex-direction: column; gap: var(--space-5); }
+.wizard-heading h2 { margin: 0 0 var(--space-1); font-size: 20px; font-weight: 700; }
+.wizard-heading p { margin: 0; }
+.wizard-question .debate-input { font-size: 16px; line-height: 1.7; }
+.wizard-question .composer-character-count { margin: var(--space-1) 0 0; text-align: right; }
+
+/* 2단계: 대화 고르기 — 카드 안에 카드가 겹치지 않게 */
+.wizard-panel .message-picker-card { padding: 0; border: 0; box-shadow: none; background: none; }
+.wizard-panel .message-picker-card > .card-heading { display: none; }
+
+/* 3단계: 대상 미리보기 */
+.wizard-audience { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); border-radius: var(--radius-lg); background: var(--muted); }
+.wizard-audience p { margin: 0; }
+.wizard-audience-row { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.wizard-accent { color: var(--primary); font-weight: 700; }
+
+/* 3단계: 조건 카드 */
+.audience-step { display: flex; flex-direction: column; gap: var(--space-3); }
+.audience-group-label { margin: 0; font-size: 14px; font-weight: 700; }
+.audience-card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
+.audience-card { display: flex; flex-direction: column; gap: var(--space-1); min-height: 76px; padding: var(--space-3) var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--card); color: var(--foreground); font: inherit; text-align: left; cursor: pointer; }
+.audience-card:hover { border-color: var(--primary); }
+.audience-card-head { display: flex; justify-content: space-between; gap: var(--space-2); font-size: 14px; }
+.audience-card-head span { color: var(--primary); font-size: 13px; }
+.audience-card-value { color: var(--muted-foreground); font-size: 15px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.audience-card.is-set .audience-card-value { color: var(--primary); font-weight: 700; }
+.audience-card.is-open { border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
+.audience-advanced-toggle { align-self: flex-start; min-height: var(--touch-min); padding: 0; border: 0; background: none; color: var(--foreground); font: inherit; font-weight: 700; cursor: pointer; }
+.audience-advanced-toggle span { margin-left: var(--space-2); color: var(--muted-foreground); font-weight: 400; font-size: 13px; }
+.audience-editor { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border: 1px solid var(--primary); border-radius: var(--radius-lg); background: var(--background); }
+.audience-editor-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); }
+.persona-filters-single { margin: 0; padding: 0; border: 0; min-width: 0; }
+.persona-filters-single .persona-filter-group { padding: 0; border: 0; background: none; }
+.persona-filters-single .filter-group-heading { display: none; }
+.persona-filters-single .filter-chip-list { max-height: 260px; }
+
+/* 4단계: 확인 */
+.wizard-summary { display: grid; grid-template-columns: 96px 1fr; gap: var(--space-3) var(--space-4); margin: 0; padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.wizard-summary dt { color: var(--muted-foreground); font-size: 14px; }
+.wizard-summary dd { margin: 0; line-height: 1.6; word-break: keep-all; overflow-wrap: anywhere; }
+.wizard-flow { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; padding-left: 1.4em; line-height: 1.6; }
+.wizard-caution { margin: 0; color: var(--muted-foreground); font-size: 13px; line-height: 1.6; }
+
+/* 이전 / 다음 */
+.wizard-nav { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); padding-top: var(--space-4); border-top: 1px solid var(--border); }
+
+@media (max-width: 720px) {
+  .wizard-steps { grid-template-columns: repeat(4, auto); overflow-x: auto; }
+  .wizard-step { font-size: 13px; padding: var(--space-2); }
+  .audience-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .wizard-summary { grid-template-columns: 1fr; gap: var(--space-1); }
+  .wizard-summary dd { margin-bottom: var(--space-2); }
+  .wizard-nav .button { flex: 1; }
+}
