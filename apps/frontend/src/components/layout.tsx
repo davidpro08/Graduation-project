@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { conversationHref, conversationTabs, type Route } from '@/lib/navigation';
-import type { Conversation } from '@/features/conversations/types';
+import { formatDate, type Conversation } from '@/features/conversations/types';
+import { useConversationStore } from '@/features/conversations/provider';
 import { AccountMenu } from '@/features/auth/account-menu';
 
 export function Card({ title, children, className = '', action }: { title?: string; children: ReactNode; className?: string; action?: ReactNode }) {
@@ -22,22 +23,38 @@ export function Empty({ title, children }: { title: string; children?: ReactNode
 
 export function Shell({ route, conversation, children }: { route: Route; conversation?: Conversation; children: ReactNode }) {
   const titles = { login: '로그인', conversations: '내 대화', upload: '대화 업로드', health: '개발 환경', conversation: conversation?.title ?? '불러오는 중입니다' };
+  const { conversations } = useConversationStore();
+  const recent = conversations.slice(0, 6);
+  const activeId = route.page === 'conversation' ? route.conversationId : undefined;
+  const people = conversation ? (conversation.participants.length <= 4 ? conversation.participants.map(person => person.name).join(' · ') : `참여자 ${conversation.participants.length}명`) : '';
   return <>
     <Link className="skip-link" href="#main-content" onClick={event => { event.preventDefault(); document.getElementById('main-content')?.focus(); }}>본문으로 이동</Link>
-    <header className="topbar"><Link href="/conversations" className="brand">그랬잖아</Link><span className="topbar-note">대화에서 찾는 근거, 함께 이해하는 관점</span><AccountMenu /></header>
-    <div className="workspace">
-      <aside className="sidebar"><p className="nav-heading">내 공간</p><nav aria-label="주요 메뉴">
-        <Link href="/conversations" aria-current={route.page === 'conversations' || route.page === 'conversation' ? 'page' : undefined}>내 대화</Link>
-        <Link href="/upload" aria-current={route.page === 'upload' ? 'page' : undefined}>대화 업로드</Link>
-      </nav><div className="sidebar-note"><strong>근거를 먼저 확인하세요.</strong><p>AI의 제안은 서로의 대화를 이해하기 위한 참고 자료입니다.</p></div><Link className="health-link" href="/health">개발 환경 연결 상태</Link></aside>
-      <main id="main-content" tabIndex={-1} className="main-content">
-        <div className="page-heading"><div><p className="eyebrow">그랬잖아 · 대화 기록</p><h1>{titles[route.page]}</h1></div>{route.page === 'conversations' && <Button asChild><Link href="/upload">새 대화 업로드</Link></Button>}</div>
-        {route.page === 'conversation' && conversation && <>
-          <p className="muted">참여자 {conversation.participants.length}명 · 메시지 {conversation.messageCount.toLocaleString()}개 · {conversation.startDate.replaceAll('-','.')} – {conversation.endDate.replaceAll('-','.')}</p>
-          <nav className="tabs" aria-label="대화 화면">{conversationTabs.map(tab => <Link key={tab.id} href={conversationHref(conversation.id, tab.id)} aria-current={route.tab === tab.id ? 'page' : undefined}>{tab.label}</Link>)}</nav>
-        </>}
+    <div className="app-shell">
+      <aside className="app-rail">
+        <div className="app-rail-top">
+          <Link href="/conversations" className="app-rail-brand">그랬잖아</Link>
+          <Link href="/upload" className="app-rail-upload" aria-current={route.page === 'upload' ? 'page' : undefined}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>업로드</Link>
+        </div>
+        <nav aria-label="주요 메뉴" className="app-rail-nav">
+          <Link href="/conversations" aria-current={route.page === 'conversations' ? 'page' : undefined}>내 대화</Link>
+        </nav>
+        {recent.length > 0 && <div className="app-rail-recent">
+          <p className="app-rail-heading">최근 대화</p>
+          <ul>{recent.map(item => <li key={item.id}><Link href={conversationHref(item.id)} aria-current={item.id === activeId ? 'page' : undefined}>
+            <strong>{item.title}</strong><span>메시지 {item.messageCount.toLocaleString()}개 · {formatDate(item.endDate).slice(5)}</span>
+          </Link></li>)}</ul>
+        </div>}
+        <div className="app-rail-foot"><AccountMenu /><Link className="health-link" href="/health">개발 환경 연결 상태</Link></div>
+      </aside>
+      <main id="main-content" tabIndex={-1} className="app-main">
+        <div className="app-head">
+          <div className="app-head-title">
+            <h1>{titles[route.page]}</h1>
+            {route.page === 'conversation' && conversation && <p>{people} · {formatDate(conversation.startDate)} – {formatDate(conversation.endDate)} · 메시지 {conversation.messageCount.toLocaleString()}개</p>}
+          </div>
+        </div>
+        {route.page === 'conversation' && conversation && <nav className="app-tabs" aria-label="대화 화면">{conversationTabs.map(tab => <Link key={tab.id} href={conversationHref(conversation.id, tab.id)} aria-current={route.tab === tab.id ? 'page' : undefined}>{tab.label}</Link>)}</nav>}
         {children}
-        <footer>그랬잖아 · 개인의 기억을 대화의 근거와 함께 살펴봅니다.</footer>
       </main>
     </div>
   </>;
