@@ -58,14 +58,19 @@ export function UploadPage({onAdd}:{onAdd:(title:string,file:File,uploadId:strin
     finally{if(version===readVersion.current)setReading(false);}
   }
   async function submit(event:FormEvent){event.preventDefault();if(!file || busy)return;setBusy(true);setError('');try{const id=await onAdd(title.trim(),file,uploadId.current);router.push(conversationHref(id));}catch(cause){setError(cause instanceof Error?cause.message:'대화를 저장하지 못했습니다.');}finally{setBusy(false);}}
-  return <><Notice>카카오톡 PC·모바일에서 내보낸 TXT 파일을 지원합니다. 파일에서 메시지를 추출해 원문과 통계를 제공합니다.</Notice>
-  <form onSubmit={submit} className="stack"><Card title="1. 대화 파일 선택"><label className="upload-box"><UploadCloud size={32} aria-hidden="true"/><span>카카오톡 TXT 파일 선택</span><Input type="file" accept=".txt,text/plain" onChange={readFile} disabled={busy}/></label>
-    <p className="small muted">최대 10MB · 메시지 100,000개 · 참여자 400명 · UTF-8 / UTF-16 / CP949 지원</p></Card>
-    <Card title="2. 원문 미리보기">{reading?<Skeleton className="h-40 w-full"/>:file?<><div className="file-meta"><FileText size={18}/><strong>{file.name}</strong><Badge variant="secondary">{(file.size/1024).toFixed(1)} KB</Badge></div><pre className="file-preview">{preview}</pre><p className="small muted">원문 앞부분 최대 4,000자입니다. 저장 시 서버가 전체 파일을 파싱합니다.</p></>:<Empty title="선택한 파일이 없습니다">카카오톡 대화방에서 대화 내용을 TXT로 내보낸 뒤 선택하세요.</Empty>}</Card>
-    <Card title="3. 대화 정보"><label>대화 제목<Input value={title} onChange={event=>setTitle(event.target.value)} required maxLength={80} placeholder="대화 제목" disabled={busy}/></label>
-      {error && <Notice tone="error">{error}</Notice>}{busy && <Notice>원본 파일을 업로드하고 메시지를 저장하고 있습니다. 잠시 기다려 주세요.</Notice>}
-      <div className="actions"><Button type="submit" disabled={!file || !title.trim() || busy || reading}>{busy?'파싱·저장 중…':'대화 저장'}</Button><Button asChild variant="outline"><Link href="/conversations">내 대화로 돌아가기</Link></Button></div>
-      <p className="small muted">원본은 비공개로 보관합니다. 저장 후 모순 후보·일정·페르소나 의견을 분석할 수 있습니다. 학교 AI 서버 연결이 필요합니다.</p></Card></form></>;
+  return <div className="up-page"><p className="up-intro">카카오톡 PC·모바일에서 내보낸 TXT 파일을 올려 주세요. 파일에서 메시지를 추출해 원문과 통계를 보여 줘요.</p>
+  <form onSubmit={submit} className="up-form">
+    <section className="up-section" aria-labelledby="up-step1"><h2 id="up-step1">1. 파일 선택</h2>
+      <label className={`up-drop${file?' has-file':''}`}><UploadCloud size={32} aria-hidden="true"/><strong>{file?'다른 파일 고르기':'TXT 파일 고르기'}</strong><span>카카오톡 대화방 → 메뉴 → 대화 내보내기 → 텍스트</span><Input className="sr-only" type="file" accept=".txt,text/plain" onChange={readFile} disabled={busy}/></label>
+      <p className="up-hint">최대 10MB · 메시지 100,000개 · 참여자 400명 · UTF-8 / UTF-16 / CP949</p></section>
+    <section className="up-section" aria-labelledby="up-step2"><h2 id="up-step2">2. 미리보기</h2>
+      {reading?<Skeleton className="h-40 w-full"/>:file?<><div className="up-chips"><span><FileText size={16} aria-hidden="true"/>{file.name}</span><span>{(file.size/1024).toFixed(1)} KB</span></div><pre className="up-preview">{preview}</pre><p className="up-hint">원문 앞부분 최대 4,000자예요. 저장하면 서버가 전체 파일을 읽어요.</p></>:<p className="up-empty">파일을 고르면 앞부분을 여기서 미리 볼 수 있어요.</p>}</section>
+    <section className="up-section" aria-labelledby="up-step3"><h2 id="up-step3">3. 대화 정보</h2>
+      <label className="up-field">대화 제목<Input value={title} onChange={event=>setTitle(event.target.value)} required maxLength={80} placeholder="대화 제목" disabled={busy}/></label>
+      {error && <Notice tone="error">{error}</Notice>}{busy && <Notice>원본 파일을 업로드하고 메시지를 저장하고 있어요. 잠시 기다려 주세요.</Notice>}
+      <div className="up-actions"><Button type="submit" disabled={!file || !title.trim() || busy || reading}>{busy?'파싱·저장 중…':'대화 저장'}</Button><Button asChild variant="outline"><Link href="/conversations">내 대화로 돌아가기</Link></Button></div>
+      <p className="up-hint">원본은 비공개로 보관돼요. 모순 후보·일정·관점별 의견 분석은 저장한 뒤 대화 화면에서 요청할 수 있어요.</p></section>
+  </form></div>;
 }
 export function HealthPage() {
   const [connection,setConnection]=useState<'loading'|'connected'|'failed'>('loading');const [attempt,setAttempt]=useState(0);

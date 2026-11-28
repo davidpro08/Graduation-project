@@ -1,0 +1,25 @@
+/* 대화 업로드 (C 스타일 시안) */
+.up-page { max-width: 860px; display: flex; flex-direction: column; gap: 20px; }
+.up-intro { font-size: 15px; color: var(--muted-foreground); }
+.up-form { display: flex; flex-direction: column; gap: 20px; }
+.up-section { display: flex; flex-direction: column; gap: 14px; padding: 24px; background: var(--card); border-radius: 16px; box-shadow: 0 1px 3px rgba(31, 42, 68, 0.08); }
+.up-section h2 { font-size: 17px; font-weight: 700; }
+.up-drop { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 32px 20px; border: 2px dashed #A9BEE3; border-radius: 14px; background: var(--card); color: var(--foreground); text-align: center; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+.up-drop svg { color: var(--primary); }
+.up-drop strong { font-size: 16px; font-weight: 500; }
+.up-drop span { font-size: 13px; font-weight: 400; color: var(--muted-foreground); }
+.up-drop:hover, .up-drop.has-file { background: #F3F6FB; border-color: var(--primary); }
+.up-drop:focus-within { outline: 2px solid var(--ring); outline-offset: 3px; }
+.up-hint { font-size: 13px; line-height: 1.6; color: var(--muted-foreground); }
+.up-empty { font-size: 15px; color: var(--muted-foreground); }
+.up-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.up-chips span { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--radius-pill); background: #E9F0FB; font-size: 14px; overflow-wrap: anywhere; }
+.up-preview { margin: 0; max-height: 320px; overflow: auto; padding: 14px 16px; border-radius: 12px; background: #F3F6FB; font: inherit; font-size: 14px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; color: #2C3856; }
+.up-field { font-size: 14px; font-weight: 500; }
+.up-field input { min-height: 48px; border-radius: 12px; border-color: #C9D6EC; font-size: 15px; font-weight: 400; }
+.up-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.up-actions .button { min-height: 48px; padding: 0 20px; border-radius: 12px; font-size: 15px; }
+@media (max-width: 760px) {
+  .up-section { padding: var(--space-4); }
+  .up-actions .button { flex: 1 1 140px; }
+}
