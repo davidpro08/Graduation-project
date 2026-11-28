@@ -13,22 +13,28 @@ import { conversationHref } from '@/lib/navigation';
 import { useConversationStore } from '@/features/conversations/provider';
 import { formatDate, type Conversation } from '@/features/conversations/types';
 import { PageControls, ParticipantAvatar } from '@/features/conversations/filters';
+import '@/styles/conversations.css';
 export { LoginPage } from '@/features/auth/login-page';
 
 export function ConversationList() {
   const store=useConversationStore();const [deleting,setDeleting]=useState<Conversation>();const [busy,setBusy]=useState(false);const [error,setError]=useState('');
   async function remove(){if(!deleting)return;setBusy(true);setError('');try{await store.deleteConversation(deleting.id);setDeleting(undefined);if(store.conversations.length===1 && store.page>1)store.setPage(store.page-1);}catch(cause){setError(cause instanceof Error?cause.message:'삭제하지 못했습니다.');}finally{setBusy(false);}}
-  return <><Card title="보관한 대화" action={<Badge variant="secondary">총 {store.total.toLocaleString()}개</Badge>}>
-    <label>대화 검색<Input type="search" maxLength={200} value={store.search} onChange={event=>store.setSearch(event.target.value)} placeholder="대화 제목으로 검색하세요"/></label>
+  return <><section className="conv-panel" aria-labelledby="conv-panel-title">
+    <div className="conv-panel-head"><h2 id="conv-panel-title">보관한 대화</h2><span className="conv-count">총 {store.total.toLocaleString()}개</span></div>
+    <label className="conv-search"><span className="sr-only">대화 검색</span><Input type="search" maxLength={200} value={store.search} onChange={event=>store.setSearch(event.target.value)} placeholder="대화 제목으로 검색하세요"/></label>
     {store.loading?<div className="stack" aria-label="대화 목록 로딩"><Skeleton className="h-24 w-full"/><Skeleton className="h-24 w-full"/></div>:
       store.error?<><Notice tone="error">{store.error}</Notice><Button variant="outline" onClick={store.reload}>다시 조회</Button></>:
-      store.conversations.length?<div className="conversation-list">{store.conversations.map(item=><article key={item.id} className="conversation-row"><div className="conversation-summary"><h3>{item.title}</h3>
-        <p className="small muted">{formatDate(item.startDate)} – {formatDate(item.endDate)} · 메시지 {item.messageCount.toLocaleString()}개 · {item.participants.length}명</p>
-        <div className="participant-preview">{item.participants.slice(0,6).map(p=><ParticipantAvatar key={p.id} participant={p}/>)}{item.participants.length>6 && <span className="small muted">+{item.participants.length-6}</span>}</div>
-      </div><div className="actions"><Button asChild><Link href={conversationHref(item.id)}>대화 열기</Link></Button><Button variant="danger-outline" onClick={()=>{setError('');setDeleting(item);}}>삭제</Button></div></article>)}</div>:
+      store.conversations.length?<ul className="conv-list">{store.conversations.map(item=><li key={item.id} className="conv-item">
+        <div className="conv-item-main"><h3><Link href={conversationHref(item.id)}>{item.title}</Link></h3>
+          <p className="conv-item-meta">{formatDate(item.startDate)} – {formatDate(item.endDate)} · 참여자 {item.participants.length}명 · 메시지 {item.messageCount.toLocaleString()}개</p>
+          <div className="participant-preview">{item.participants.slice(0,6).map(p=><ParticipantAvatar key={p.id} participant={p}/>)}{item.participants.length>6 && <span className="small muted">+{item.participants.length-6}</span>}</div>
+        </div>
+        <div className="conv-item-actions"><Button asChild><Link href={conversationHref(item.id)}>원문 보기</Link></Button><Button variant="outline" asChild><Link href={conversationHref(item.id,'statistics')}>통계 보기</Link></Button><button type="button" className="conv-delete" onClick={()=>{setError('');setDeleting(item);}}>삭제</button></div>
+      </li>)}</ul>:
       <Empty title="보관한 대화가 없습니다">카카오톡에서 내보낸 TXT 파일을 업로드해 주세요.</Empty>}
     {!store.loading && !store.error && store.total>20 && <PageControls page={store.page} total={store.total} pageSize={20} onChange={store.setPage}/>}
-  </Card><Card title="대화 보관 안내"><p>원본 TXT는 비공개로 보관하며 대화 원문과 통계는 저장한 메시지를 기준으로 표시합니다.</p><p className="muted">대화를 삭제하면 원본 파일과 참여자·메시지도 함께 삭제됩니다.</p></Card>
+  </section>
+  <p className="conv-note">원본 TXT는 비공개로 보관하며, 원문과 통계는 저장한 메시지를 기준으로 보여 줘요. 대화를 삭제하면 원본 파일과 참여자·메시지도 함께 삭제돼요.</p>
   <AlertDialog open={!!deleting} onOpenChange={open=>{if(!open && !busy)setDeleting(undefined);}}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>이 대화를 삭제할까요?</AlertDialogTitle><AlertDialogDescription>{deleting?.title}의 원본 파일과 모든 메시지가 삭제됩니다.</AlertDialogDescription></AlertDialogHeader>
     {error && <Notice tone="error">{error}</Notice>}<AlertDialogFooter><AlertDialogCancel disabled={busy}>취소</AlertDialogCancel><Button variant="destructive" disabled={busy} onClick={remove}>{busy?'삭제 중…':'삭제'}</Button></AlertDialogFooter></AlertDialogContent></AlertDialog></>;
 }
